@@ -1,0 +1,21 @@
+# Phase 0 acceptance checklist
+
+- [ ] Python 3.12 environment created in `.venv`
+- [ ] Editable `.[dev]` install succeeds
+- [ ] Initial bootstrap succeeds
+- [ ] Idempotent second bootstrap preserves starter records
+- [ ] Check-only validation succeeds without writes
+- [ ] Test suite passes
+- [ ] Coverage is at least 90%
+- [ ] Ruff lint passes
+- [ ] Ruff format check passes
+- [ ] mypy passes for `app` and `scripts`
+- [ ] SQLite contains every schema-v1 table
+- [ ] Manifest values and timezone are correct
+- [ ] Every CSV header exactly matches its contract
+- [ ] Nine deterministic starter categories exist
+- [ ] At least 40 starter quotes exist
+- [ ] Runtime/cache/build artifacts are ignored by Git
+- [ ] No runtime database is staged by Git
+- [ ] No portable contract contains a session-intention field
+- [ ] Phase 0 documentation has been reviewed

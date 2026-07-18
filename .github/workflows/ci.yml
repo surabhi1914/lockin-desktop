@@ -1,0 +1,52 @@
+name: Windows CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      QT_QPA_PLATFORM: offscreen
+      LOCKIN_RUNTIME_ROOT: ${{ runner.temp }}\lockin-runtime
+      LOCKIN_PORTABLE_ROOT: ${{ runner.temp }}\lockin-portable
+      LOCKIN_SETTINGS_PATH: ${{ runner.temp }}\lockin-settings.ini
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Set up Python 3.12
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install project and development dependencies
+        run: python -m pip install -e ".[dev]"
+      - name: Initialize sanitized temporary data
+        run: python main.py --phase0-bootstrap
+      - name: Test with coverage
+        run: >-
+          python -m pytest
+          --cov=app.core --cov=app.database --cov=app.portability
+          --cov=app.bootstrap --cov=app.application --cov=app.ui
+          --cov=app.services --cov=app.models --cov=app.themes
+          --cov=app.timer --cov=app.shortcuts --cov=app.recovery
+          --cov=app.quotes --cov=app.audio --cov=app.analytics
+          --cov-report=term-missing --cov-fail-under=90
+      - name: Static quality
+        run: |
+          python -m ruff check .
+          python -m ruff format --check .
+          python -m mypy app scripts
+      - name: Data integrity and import verification
+        run: |
+          python scripts/verify_session_integrity.py
+          python scripts/verify_portable_sync.py
+          python scripts/verify_analytics.py
+          python scripts/inspect_import_readiness.py --portable-root "$env:LOCKIN_PORTABLE_ROOT"
+          python scripts/import_portable_data.py --portable-root "$env:LOCKIN_PORTABLE_ROOT" --mode verify
+          python scripts/validate_release_resources.py

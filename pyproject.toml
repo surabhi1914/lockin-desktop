@@ -1,0 +1,81 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lockin-desktop"
+version = "1.0.0"
+description = "Local-first Windows focus timer"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = { file = "LICENSE" }
+dependencies = [
+    "PySide6>=6.8,<7",
+    "tzdata>=2025.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "mypy>=1.13,<2",
+    "pytest>=8.3,<9",
+    "pytest-cov>=6,<7",
+    "pytest-qt>=4.4,<5",
+    "ruff>=0.8,<1",
+    "pyinstaller>=6.11,<7",
+]
+
+[project.scripts]
+lockin-bootstrap = "app.bootstrap:main"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.setuptools.package-data]
+"app.database" = ["schema_v1.sql", "schema_v2.sql", "schema_v3.sql", "schema_v4.sql"]
+"app.themes" = ["*.qss"]
+"app.assets" = ["*.wav", "icons/*.png", "icons/*.ico"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-markers --strict-config"
+
+[tool.coverage.run]
+branch = true
+source = [
+    "app.core",
+    "app.database",
+    "app.portability",
+    "app.bootstrap",
+    "app.application",
+    "app.ui",
+    "app.services",
+    "app.models",
+    "app.themes",
+    "app.timer",
+    "app.shortcuts",
+]
+omit = ["*/__init__.py"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+fail_under = 90
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+exclude = [".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "C4", "RUF"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+exclude = ["tests"]
+mypy_path = ["."]

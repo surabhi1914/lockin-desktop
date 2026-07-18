@@ -1,0 +1,25 @@
+# Phase 1 acceptance checklist
+
+- [ ] Phase 0 entry gate passed before changes
+- [ ] Editable `.[dev]` install includes pytest-qt
+- [ ] GUI launches through `python main.py`
+- [ ] Window title, default size, and minimum size are correct
+- [ ] Sidebar navigation is clear and usable
+- [ ] Collapse state and startup preference persist
+- [ ] All seven pages are present
+- [ ] Navigation does not duplicate page instances
+- [ ] All five themes apply
+- [ ] Theme selection persists and safely falls back
+- [ ] Geometry/state persist and off-screen geometry recovers
+- [ ] Tray available and unavailable paths behave safely
+- [ ] Close-to-tray and explicit Exit behave correctly
+- [ ] Categories and quotes are validated and read-only
+- [ ] No fake statistics or history are shown
+- [ ] GUI startup creates no sessions
+- [ ] GUI startup does not mutate portable CSV
+- [ ] Tests and Phase 1 coverage gate pass
+- [ ] Ruff lint and format checks pass
+- [ ] mypy passes for `app` and `scripts`
+- [ ] Phase 1 documentation is truthful and reviewed
+- [ ] No timer logic was added
+- [ ] No Git commit or push was performed

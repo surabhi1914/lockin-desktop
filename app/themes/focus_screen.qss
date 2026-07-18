@@ -1,0 +1,58 @@
+QWidget#focusExperience, QWidget#focusCanvas {
+    background: #000000;
+    color: #ffffff;
+}
+
+QStackedWidget#focusViewStack {
+    background: #000000;
+    color: #ffffff;
+}
+
+QWidget#focusExperience QLabel, QWidget#focusCanvas QLabel {
+    background: transparent;
+    color: #ffffff;
+}
+
+QLabel#focusCategory, QLabel#focusQuote, QLabel#focusState {
+    color: #b7b7b7;
+}
+
+QLabel#focusFeedback {
+    color: #a8d8a8;
+    font-size: 15px;
+}
+
+QWidget#focusControls {
+    background: rgba(20, 20, 20, 220);
+    border-radius: 10px;
+}
+
+QWidget#focusControls QPushButton, QWidget#focusOverlay QPushButton,
+QWidget#startRitual QPushButton {
+    background: #202020;
+    color: #ffffff;
+    border: 1px solid #555555;
+    border-radius: 6px;
+    padding: 10px 15px;
+}
+
+QWidget#focusControls QPushButton:hover, QWidget#focusOverlay QPushButton:hover,
+QWidget#startRitual QPushButton:hover {
+    background: #303030;
+    border-color: #ffffff;
+}
+
+QWidget#focusControls QPushButton:focus, QWidget#focusOverlay QPushButton:focus,
+QWidget#startRitual QPushButton:focus {
+    border: 2px solid #ffffff;
+}
+
+QWidget#focusControls QPushButton:disabled, QWidget#focusOverlay QPushButton:disabled {
+    color: #666666;
+    border-color: #333333;
+}
+
+QWidget#startRitual, QWidget#focusOverlay, QWidget#shortcutHelpOverlay {
+    background: #000000;
+    color: #ffffff;
+}

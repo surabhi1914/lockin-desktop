@@ -1,0 +1,1 @@
+schema_version,distraction_id,session_id,segment_id,device_id,marked_at_utc,marked_at_local,local_date,timezone_name,category_id,category_name_snapshot,elapsed_focus_seconds,remaining_planned_seconds,is_overtime,optional_note,created_at_utc,exported_at_utc,record_checksum

@@ -1,0 +1,69 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Install project",
+      "type": "process",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "pip", "install", "-e", ".[dev]"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Run all tests",
+      "type": "process",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "pytest", "-q"],
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run coverage",
+      "type": "process",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "pytest", "--cov=app.core", "--cov=app.database", "--cov=app.portability", "--cov=app.bootstrap", "--cov=app.application", "--cov=app.ui", "--cov=app.services.settings_service", "--cov=app.services.tray_service", "--cov=app.themes", "--cov-report=term-missing", "--cov-fail-under=88"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Ruff check",
+      "type": "process",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "ruff", "check", "."],
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Ruff format check",
+      "type": "process",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "ruff", "format", "--check", "."],
+      "problemMatcher": []
+    },
+    {
+      "label": "Run mypy",
+      "type": "process",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "mypy", "app", "scripts"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Launch Phase 1 GUI",
+      "type": "process",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+      "args": ["main.py"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Bootstrap development data",
+      "type": "process",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+      "args": ["main.py", "--phase0-bootstrap"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Validate portable data",
+      "type": "process",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+      "args": ["scripts/validate_portable_data.py"],
+      "problemMatcher": []
+    }
+  ]
+}
