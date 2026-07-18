@@ -1,0 +1,47 @@
+{
+  "application": "LockIn",
+  "manifest_schema_version": 1,
+  "data_schema_version": 1,
+  "created_at_utc": "2026-07-18T15:13:03Z",
+  "updated_at_utc": "2026-07-18T15:13:03Z",
+  "last_successful_sync_at_utc": "2026-07-18T15:13:03Z",
+  "primary_timezone": "America/Detroit",
+  "csv_encoding": "utf-8",
+  "duration_unit": "seconds",
+  "boolean_encoding": "true_false_lowercase",
+  "partitioning": {
+    "strategy": "monthly_then_size",
+    "max_file_size_bytes": 10485760,
+    "part_number_width": 3
+  },
+  "entities": {
+    "devices": {
+      "partitioned": false,
+      "path": "devices.csv"
+    },
+    "categories": {
+      "partitioned": false,
+      "path": "categories.csv"
+    },
+    "quotes": {
+      "partitioned": false,
+      "path": "quotes.csv"
+    },
+    "daily_goals": {
+      "partitioned": false,
+      "path": "daily_goals.csv"
+    },
+    "sessions": {
+      "partitioned": true,
+      "directory": "sessions"
+    },
+    "segments": {
+      "partitioned": true,
+      "directory": "segments"
+    },
+    "distractions": {
+      "partitioned": true,
+      "directory": "distractions"
+    }
+  }
+}

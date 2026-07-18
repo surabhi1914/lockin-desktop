@@ -1,0 +1,11 @@
+schema_version,category_id,category_name,category_icon,is_active,created_at_utc,updated_at_utc
+1,1982ab17-5129-51cf-8c83-4368b35eb8e4,Machine Learning,,true,2026-07-18T15:13:03Z,2026-07-18T15:13:03Z
+1,0e3a87dc-87f2-5ede-a12a-0241b3af972e,DSA,,true,2026-07-18T15:13:03Z,2026-07-18T15:13:03Z
+1,fdbbfef5-aa07-51f3-91c5-63fa3bb238d7,Projects,,true,2026-07-18T15:13:03Z,2026-07-18T15:13:03Z
+1,61cdd2e0-14f9-51be-b417-9762724a54ed,Research,,true,2026-07-18T15:13:03Z,2026-07-18T15:13:03Z
+1,1b6c7e77-95f3-5f6f-b936-45e23e92d282,Job Applications,,true,2026-07-18T15:13:03Z,2026-07-18T15:13:03Z
+1,e3078617-28ca-5785-a3d7-38443ae632f2,Reading,,true,2026-07-18T15:13:03Z,2026-07-18T15:13:03Z
+1,5ab56905-d285-57e9-9a2a-781f1f7de1e7,Interview Preparation,,true,2026-07-18T15:13:03Z,2026-07-18T15:13:03Z
+1,e76c9c17-6a7a-5d7f-b8ec-071df82a6352,Administrative,,true,2026-07-18T15:13:03Z,2026-07-18T15:13:03Z
+1,b9b2cc74-78cc-5ad0-905e-37c1ec0ee230,Other,,true,2026-07-18T15:13:03Z,2026-07-18T15:13:03Z
+1,2d8510bd-5b55-5074-a2cd-ffe9564d54d4,Synthetic Planning,,true,2026-07-18T15:13:03Z,2026-07-18T15:13:03Z

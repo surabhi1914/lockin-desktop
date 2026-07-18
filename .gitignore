@@ -46,3 +46,5 @@ notes.txt
 *_codex_prompt.md
 .agents/
 portable_data/
+!tests/fixtures/portable_data/
+!tests/fixtures/portable_data/**
