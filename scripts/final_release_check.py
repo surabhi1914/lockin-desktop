@@ -74,8 +74,7 @@ def check(repo: Path, mode: str) -> tuple[str, ...]:
         lowered = relative.casefold()
         parts = Path(relative).parts
         is_runtime_directory = any(
-            part in {".local_data", "logs", "backups", "diagnostics"}
-            for part in parts
+            part in {".local_data", "logs", "backups", "diagnostics"} for part in parts
         ) and parts[:2] != ("app", "diagnostics")
         if lowered.endswith(RUNTIME_SUFFIXES) or is_runtime_directory:
             errors.append(f"runtime or backup file would be tracked: {relative}")

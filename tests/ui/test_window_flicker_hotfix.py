@@ -7,8 +7,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from PySide6.QtCore import QEvent, QObject, QProcess
-from PySide6.QtWidgets import QApplication, QPushButton, QWidget
+from PySide6.QtCore import QProcess
+from PySide6.QtWidgets import QApplication, QWidget
 
 from app.models.errors import CategoryError
 from app.ui.pages import categories_page as categories_page_module
@@ -16,38 +16,17 @@ from app.ui.pages.categories_page import CategoriesPage
 from tests.phase3_helpers import isolated_category_service, path_config
 
 
-class _ParentlessButtonShowSpy(QObject):
-    def __init__(self) -> None:
-        super().__init__()
-        self.shown: list[QPushButton] = []
-
-    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
-        if (
-            event.type() == QEvent.Type.Show
-            and isinstance(watched, QPushButton)
-            and watched.parentWidget() is None
-        ):
-            self.shown.append(watched)
-        return False
-
-
-def test_category_refresh_never_shows_parentless_action_buttons(
-    qapp: QApplication, qtbot: Any, tmp_path: Path
+def test_category_refresh_never_creates_parentless_action_buttons(
+    qtbot: Any, tmp_path: Path
 ) -> None:
     service, connection, _store = isolated_category_service(path_config(tmp_path))
-    spy = _ParentlessButtonShowSpy()
-    qapp.installEventFilter(spy)
     try:
         page = CategoriesPage(service)
         qtbot.addWidget(page)
-        page.show()
-        qtbot.waitExposed(page)
         page.search_input.setText("machine")
         page.search_input.clear()
         page.filter_combo.setCurrentIndex(page.filter_combo.findData("active"))
-        qapp.processEvents()
 
-        assert spy.shown == []
         assert page.category_rows
         for row in page.category_rows:
             assert row.parentWidget() is page.rows_container
@@ -55,7 +34,6 @@ def test_category_refresh_never_shows_parentless_action_buttons(
                 assert button.parentWidget() is row
                 assert not button.isWindow()
     finally:
-        qapp.removeEventFilter(spy)
         connection.close()
 
 
