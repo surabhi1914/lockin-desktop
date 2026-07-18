@@ -25,6 +25,8 @@ def test_version_cli_uses_authoritative_release_identity(
 def test_installed_paths_are_outside_bundle_and_support_overrides(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
+    monkeypatch.delenv("LOCKIN_RUNTIME_ROOT", raising=False)
+    monkeypatch.delenv("LOCKIN_PORTABLE_ROOT", raising=False)
     bundle = tmp_path / "Program Files" / "LockIn" / "bundle"
     local = tmp_path / "Local App Data Ω"
     documents = tmp_path / "OneDrive" / "Documents Ω"

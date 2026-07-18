@@ -15,11 +15,12 @@ from app.ui.dialogs.import_conflict_dialog import ImportConflictDialog
 from app.ui.dialogs.import_result_dialog import show_import_result
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PORTABLE_FIXTURE = PROJECT_ROOT / "tests" / "fixtures" / "portable_data"
 
 
 def _setup(tmp_path: Path):
     portable = tmp_path / "portable"
-    shutil.copytree(PROJECT_ROOT / "portable_data", portable)
+    shutil.copytree(PORTABLE_FIXTURE, portable)
     runtime = tmp_path / "runtime"
     imported = PortableImportService().run(portable, runtime, mode=ImportMode.FRESH)
     settings = SettingsService(QSettings(str(tmp_path / "ui.ini"), QSettings.Format.IniFormat))
@@ -123,7 +124,7 @@ def test_new_device_onboarding_verifies_rebuilds_and_remembers_device(
     qapp, tmp_path: Path, monkeypatch
 ) -> None:
     portable = tmp_path / "existing portable"
-    shutil.copytree(PROJECT_ROOT / "portable_data", portable)
+    shutil.copytree(PORTABLE_FIXTURE, portable)
     runtime = tmp_path / "new runtime"
     config = PathConfig(tmp_path, runtime, portable)
     monkeypatch.setenv("LOCKIN_SETTINGS_PATH", str(tmp_path / "onboarding.ini"))
@@ -150,7 +151,7 @@ def test_onboarding_skips_nonempty_runtime_and_honors_cancel(
     qapp, tmp_path: Path, monkeypatch
 ) -> None:
     portable = tmp_path / "portable"
-    shutil.copytree(PROJECT_ROOT / "portable_data", portable)
+    shutil.copytree(PORTABLE_FIXTURE, portable)
     runtime = tmp_path / "runtime"
     imported = PortableImportService().run(portable, runtime, mode=ImportMode.FRESH)
     config = PathConfig(tmp_path, runtime, portable)

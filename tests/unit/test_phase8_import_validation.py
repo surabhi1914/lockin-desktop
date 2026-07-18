@@ -14,11 +14,12 @@ from app.services.data_location_service import resolve_portable_folder
 from app.services.session_checksum_service import session_checksum
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PORTABLE_FIXTURE = PROJECT_ROOT / "tests" / "fixtures" / "portable_data"
 
 
 def _portable_copy(tmp_path: Path) -> Path:
     target = tmp_path / "portable copy ü"
-    shutil.copytree(PROJECT_ROOT / "portable_data", target)
+    shutil.copytree(PORTABLE_FIXTURE, target)
     return target
 
 
@@ -43,7 +44,7 @@ def _mutate_first_session(root: Path, mutation) -> None:
 def test_valid_root_and_repository_child_are_resolved(tmp_path: Path) -> None:
     child = tmp_path / "repo with spaces" / "portable_data"
     child.parent.mkdir()
-    shutil.copytree(PROJECT_ROOT / "portable_data", child)
+    shutil.copytree(PORTABLE_FIXTURE, child)
     assert resolve_portable_folder(child) == child.resolve()
     assert resolve_portable_folder(child.parent) == child.resolve()
     report, bundle = PortableImportValidator().validate(child.parent)

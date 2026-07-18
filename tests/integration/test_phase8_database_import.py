@@ -26,11 +26,12 @@ from app.services.session_persistence_service import SessionPersistenceService
 from app.timer import ManualClock, TimerConfig, TimerEngine
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PORTABLE_FIXTURE = PROJECT_ROOT / "tests" / "fixtures" / "portable_data"
 
 
 def _portable_copy(tmp_path: Path) -> Path:
     target = tmp_path / "portable"
-    shutil.copytree(PROJECT_ROOT / "portable_data", target)
+    shutil.copytree(PORTABLE_FIXTURE, target)
     return target
 
 
