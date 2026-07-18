@@ -1,6 +1,6 @@
 # Contributing
 
-LockIn 1.0.0 is feature-complete. Changes should be narrowly scoped to correctness, accessibility,
+LockIn 1.0.1 is feature-complete. Changes should be narrowly scoped to correctness, accessibility,
 data safety, documentation, or Windows compatibility. Do not add telemetry, cloud accounts, Spotify,
 global hooks, kiosk/system blocking, or automatic Git operations.
 

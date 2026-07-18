@@ -20,7 +20,7 @@ if str(REPOSITORY_ROOT) not in sys.path:
 
 from scripts.validate_release_resources import validate  # noqa: E402
 
-PORTABLE_README = """LockIn 1.0.0 portable application
+PORTABLE_README = """LockIn 1.0.1 portable application
 
 1. Extract the complete ZIP to a folder you can write to.
 2. Keep the LockIn folder together and run LockIn\\LockIn.exe.

@@ -39,6 +39,8 @@ installer-output/
 packaging-output/
 release/
 diagnostics/
+!app/diagnostics/
+!app/diagnostics/*.py
 health*.json
 import-report*.json
 recovery-report*.json

@@ -3,6 +3,15 @@
 Confirm Python 3.12 is selected, use only the repository `.venv`, and run the commands in
 [12_TESTING.md](12_TESTING.md).
 
+## A blank window flashes during interaction
+
+Upgrade to LockIn 1.0.1. Version 1.0.0 briefly promoted parentless category action buttons to native
+top-level windows while category rows were created or refreshed. The 1.0.1 hotfix corrects widget
+ownership; it is not a console-hiding workaround and does not change user data. Developers can set
+`LOCKIN_TRACE_PROCESS_LAUNCHES=1` and `LOCKIN_TRACE_TRANSIENT_WINDOWS=1` before launch to emit
+privacy-safe JSON diagnostics to standard error. Both variables are disabled by default and should
+not be enabled for routine use.
+
 If full screen opens on an unexpected monitor, exit full screen, move most of the normal LockIn
 window onto the intended monitor, and enter again. There is intentionally no monitor selector. If a
 monitor is unplugged, LockIn should recover windowed on the current primary display while time keeps

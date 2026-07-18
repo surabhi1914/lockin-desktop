@@ -14,6 +14,6 @@ if (-not (Test-Path -LiteralPath (Join-Path $repo "dist\LockIn\LockIn.exe"))) {
 New-Item -ItemType Directory -Path (Join-Path $repo "release") -Force | Out-Null
 & $compiler (Join-Path $repo "installer\LockIn.iss")
 if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed." }
-$output = Join-Path $repo "release\LockIn-Setup-v1.0.0.exe"
+$output = Join-Path $repo "release\LockIn-Setup-v1.0.1.exe"
 if (-not (Test-Path -LiteralPath $output)) { throw "Installer artifact is missing: $output" }
 Write-Output "Installer build complete: $output"

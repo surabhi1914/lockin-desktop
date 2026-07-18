@@ -28,8 +28,9 @@ class CategoryRow(QFrame):
         rename_callback: Callable[[bool], None],
         archive_callback: Callable[[bool], None],
         restore_callback: Callable[[bool], None],
+        parent: QWidget | None = None,
     ) -> None:
-        super().__init__()
+        super().__init__(parent)
         self.category = category
         self.setProperty("card", True)
         layout = QHBoxLayout(self)
@@ -46,12 +47,15 @@ class CategoryRow(QFrame):
         text.addWidget(name)
         text.addWidget(badge)
         layout.addLayout(text, 1)
-        self.rename_button = QPushButton("Rename")
-        self.archive_button = QPushButton("Archive")
-        self.restore_button = QPushButton("Restore")
+        self.rename_button = QPushButton("Rename", self)
+        self.archive_button = QPushButton("Archive", self)
+        self.restore_button = QPushButton("Restore", self)
         self.rename_button.clicked.connect(rename_callback)
         self.archive_button.clicked.connect(archive_callback)
         self.restore_button.clicked.connect(restore_callback)
+        layout.addWidget(self.rename_button)
+        layout.addWidget(self.archive_button)
+        layout.addWidget(self.restore_button)
         protected = category.category_id == OTHER_CATEGORY_ID
         self.rename_button.setVisible(category.is_active)
         self.archive_button.setVisible(category.is_active)
@@ -62,9 +66,6 @@ class CategoryRow(QFrame):
             explanation = "Other is the protected fallback category."
             self.rename_button.setToolTip(explanation)
             self.archive_button.setToolTip(explanation)
-        layout.addWidget(self.rename_button)
-        layout.addWidget(self.archive_button)
-        layout.addWidget(self.restore_button)
         state = "active" if category.is_active else "archived"
         self.setAccessibleName(f"Category {category.category_name}, {state}")
 
@@ -160,6 +161,7 @@ class CategoriesPage(QWidget):
                 rename_callback=rename,
                 archive_callback=archive,
                 restore_callback=restore,
+                parent=self.rows_container,
             )
             self.category_rows.append(row)
             self.rows_layout.addWidget(row)

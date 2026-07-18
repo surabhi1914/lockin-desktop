@@ -104,7 +104,7 @@ def test_health_check_is_noninteractive_and_uses_isolated_paths(
     output = tmp_path / "diagnostics" / "health.json"
     assert run_health_check(output) == 0
     report = json.loads(output.read_text(encoding="utf-8"))
-    assert report["version"] == "1.0.0"
+    assert report["version"] == "1.0.1"
     assert report["result"] == "ok"
     assert report["database"] == {"integrity": "ok", "schema_version": 4, "available": True}
     assert "intention" not in output.read_text(encoding="utf-8").casefold()

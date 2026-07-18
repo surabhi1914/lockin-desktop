@@ -24,6 +24,7 @@ from app.database.repositories.device_repository import DeviceRepository
 from app.database.repositories.runtime_state_repository import RuntimeStateRepository
 from app.database.repositories.session_repository import SessionRepository
 from app.database.unit_of_work import UnitOfWork
+from app.diagnostics import install_process_launch_tracing, install_transient_window_tracing
 from app.models.errors import CategoryError
 from app.portability.category_portable_store import CategoryPortableStore
 from app.quotes.quote_store import QuoteStore
@@ -200,6 +201,7 @@ def _application_instance(argv: list[str]) -> QApplication:
     icon = ResourceLocator.standard().optional("app", "assets", "icons", "lockin.ico")
     if icon is not None:
         application.setWindowIcon(QIcon(str(icon)))
+    install_transient_window_tracing(application)
     return application
 
 
@@ -420,6 +422,7 @@ def create_application(
 
 
 def run(argv: list[str] | None = None) -> int:
+    install_process_launch_tracing()
     arguments = argv or []
     onboarding = _offer_new_device_onboarding(arguments)
     if onboarding is False:

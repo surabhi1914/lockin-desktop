@@ -48,7 +48,23 @@ REQUIRED_DOCS = (
     "CHANGELOG.md",
     "docs/PHASE_13_ACCEPTANCE_CHECKLIST.md",
     "docs/FINAL_PROJECT_ACCEPTANCE.md",
+    "docs/HOTFIX_1_0_1_ACCEPTANCE.md",
 )
+V1_0_0_COMMIT = "0a05c9619eea749bedfa3475359441935c819688"
+V1_0_0_ASSETS = {
+    "LockIn-Setup-v1.0.0.exe": (
+        40_912_144,
+        "sha256:02a3783dff8a53f4d506b635f971bc17ab6188296a2bcaafff2aee12ea8bf52a",
+    ),
+    "LockIn-v1.0.0-portable.zip": (
+        56_842_513,
+        "sha256:88d3389dc6f29366fc3f211876b00842153ca3123a35725a4a156bf5790a2621",
+    ),
+    "SHA256SUMS.txt": (
+        185,
+        "sha256:5366c19295183bc5eb9aa1d3aad6aca6fa54649086e2d4c40d86a9f3a2bf9287",
+    ),
+}
 
 
 def check(repo: Path, mode: str) -> tuple[str, ...]:
@@ -56,10 +72,12 @@ def check(repo: Path, mode: str) -> tuple[str, ...]:
     candidates = _source_candidates(repo)
     for relative in candidates:
         lowered = relative.casefold()
-        if lowered.endswith(RUNTIME_SUFFIXES) or any(
+        parts = Path(relative).parts
+        is_runtime_directory = any(
             part in {".local_data", "logs", "backups", "diagnostics"}
-            for part in Path(relative).parts
-        ):
+            for part in parts
+        ) and parts[:2] != ("app", "diagnostics")
+        if lowered.endswith(RUNTIME_SUFFIXES) or is_runtime_directory:
             errors.append(f"runtime or backup file would be tracked: {relative}")
     errors.extend(_scan_secrets(repo, candidates))
     for required in REQUIRED_DOCS:
@@ -72,6 +90,7 @@ def check(repo: Path, mode: str) -> tuple[str, ...]:
         errors.extend(_bundle_errors(repo))
         errors.extend(_health_errors(repo))
     errors.extend(_repository_visibility_errors(repo, required=mode == "post-publication"))
+    errors.extend(_v1_0_0_preservation_errors(repo, required=mode == "post-publication"))
     if mode == "post-publication":
         errors.extend(_publication_errors(repo))
     return tuple(errors)
@@ -123,7 +142,7 @@ def _version_errors(repo: Path) -> list[str]:
     required = {
         "pyproject.toml": f'version = "{__version__}"',
         "installer/LockIn.iss": f'#define MyAppVersion "{__version__}"',
-        "packaging/version_info.txt": "ProductVersion', u'1.0.0",
+        "packaging/version_info.txt": f"ProductVersion', u'{__version__}",
         "RELEASE_NOTES.md": f"LockIn v{__version__}",
         "CHANGELOG.md": f"[{__version__}]",
     }
@@ -243,6 +262,35 @@ def _publication_errors(repo: Path) -> list[str]:
     }
     if names != expected:
         errors.append("GitHub Release assets do not exactly match the approved set")
+    return errors
+
+
+def _v1_0_0_preservation_errors(repo: Path, *, required: bool) -> list[str]:
+    errors: list[str] = []
+    tag_commit = _run(repo, "git", "rev-list", "-n", "1", "v1.0.0").stdout.strip()
+    if tag_commit != V1_0_0_COMMIT:
+        errors.append("v1.0.0 tag no longer resolves to the original release commit")
+    release = _run(
+        repo,
+        "gh",
+        "release",
+        "view",
+        "v1.0.0",
+        "--json",
+        "assets,tagName,isDraft,isPrerelease",
+    )
+    if release.returncode != 0:
+        if required:
+            errors.append("v1.0.0 GitHub Release could not be verified")
+        return errors
+    data = json.loads(release.stdout)
+    if data.get("tagName") != "v1.0.0" or data.get("isDraft") or data.get("isPrerelease"):
+        errors.append("v1.0.0 GitHub Release identity or stability changed")
+    assets = {
+        item.get("name"): (item.get("size"), item.get("digest")) for item in data.get("assets", [])
+    }
+    if assets != V1_0_0_ASSETS:
+        errors.append("v1.0.0 GitHub Release assets changed from the recorded size/digest set")
     return errors
 
 

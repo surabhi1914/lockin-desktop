@@ -40,7 +40,7 @@ $env:LOCKIN_PORTABLE_ROOT = "C:\path with spaces\portable"
 The roots must differ. Unset overrides with `Remove-Item Env:LOCKIN_RUNTIME_ROOT` and the equivalent
 portable variable.
 
-## Launch LockIn 1.0.0
+## Launch LockIn 1.0.1
 
 ```powershell
 .\.venv\Scripts\python.exe main.py

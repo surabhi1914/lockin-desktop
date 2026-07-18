@@ -1,6 +1,6 @@
 # LockIn documentation
 
-LockIn v1.0.0 final documentation:
+LockIn v1.0.1 final documentation:
 
 - [08 Development setup](08_DEVELOPMENT_SETUP.md)
 - [09 Architecture](09_ARCHITECTURE.md)

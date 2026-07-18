@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1] - 2026-07-18
+
+- Fixed transient native-window flicker during UI interaction by parenting category-row controls
+  before their visibility is changed.
+- Added disabled-by-default process-launch and Qt transient-window diagnostics plus regression tests.
+- No feature, schema migration, or user-history change; v1.0.0 data remains fully compatible.
+
 ## [1.0.0] - 2026-07-17
 
 - Hardened source/frozen resource and writable production-path separation.

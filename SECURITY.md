@@ -5,7 +5,7 @@ Git automation. Operational data is stored in local SQLite and portable UTF-8 CS
 documented in the README. A private GitHub repository still requires normal account and collaborator
 hygiene; repository privacy is not a substitute for backups or endpoint security.
 
-The Windows 1.0.0 binaries are unsigned. Windows SmartScreen may warn. Verify both downloaded assets
+The Windows 1.0.1 binaries are unsigned. Windows SmartScreen may warn. Verify both downloaded assets
 against the lowercase SHA-256 values in `SHA256SUMS.txt` from the same private release. Do not disable
 Windows security controls.
 

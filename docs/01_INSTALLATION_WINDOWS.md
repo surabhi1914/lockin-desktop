@@ -1,10 +1,10 @@
 # Windows installation
 
-LockIn 1.0.0 supports Windows 10/11 x64. Download the installer and `SHA256SUMS.txt` from the
+LockIn 1.0.1 supports Windows 10/11 x64. Download the installer and `SHA256SUMS.txt` from the
 private GitHub Release. Verify it with:
 
 ```powershell
-Get-FileHash .\LockIn-Setup-v1.0.0.exe -Algorithm SHA256
+Get-FileHash .\LockIn-Setup-v1.0.1.exe -Algorithm SHA256
 ```
 
 Compare the lowercase result with `SHA256SUMS.txt`, then run the installer. It is per-user, requires
