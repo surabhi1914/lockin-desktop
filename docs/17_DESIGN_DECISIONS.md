@@ -147,3 +147,13 @@
 - Health diagnostics are noninteractive JSON and use explicit temporary overrides during acceptance.
 - The installer is per-user, unsigned, service-free, startup-task-free, and upgrade-safe.
 - GitHub publication is private, non-force, and restricted to three verified release assets.
+# Manual past-session decisions
+
+- Manual entry is a finalized historical write, never a simulated timer lifecycle.
+- Duration is authoritative and end instants are derived on the UTC timeline from an explicitly
+  resolved IANA-zone start.
+- Ambiguous DST wall times require a fold choice; nonexistent wall times are rejected.
+- Partial/full overlaps are explicit user decisions, while duplicates and unresolved runtime state
+  are hard blocks.
+- Manual planned and overtime segments share a continuity group, preserving one analytical block.
+- Editing and deletion are omitted until portable update/tombstone semantics are demonstrably safe.

@@ -156,3 +156,16 @@ scanned. A session checksum is its immutable identity; segment/distraction ident
 stable content fields. Rows split at local midnight are grouped by `source_segment_id` and rebuilt
 as one logical segment. Duplicate IDs with different content and normalized-name category collisions
 are conflicts, never last-writer-wins updates.
+# Portable data schema version 2
+
+The session CSV adds three columns before `exported_at_utc` and `record_checksum`:
+
+| Column | Meaning |
+| --- | --- |
+| `entry_source` | `timer`, `manual`, `recovery`, or `imported` |
+| `manual_entry_created_at_utc` | UTC creation timestamp for a manual record; empty otherwise |
+| `manual_entry_updated_at_utc` | UTC edit timestamp; empty in v1.1.0 because editing is deferred |
+
+Schema-v1 session headers remain importable. When provenance is absent, import classifies the row as
+`imported`; it never guesses `manual`. Local synchronization upgrades v1 session files atomically,
+retains backups, advances the manifest data schema to 2, and keeps checksums/idempotency intact.

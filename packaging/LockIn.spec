@@ -10,6 +10,7 @@ datas = [
     (str(project / "app" / "database" / "schema_v2.sql"), "app/database"),
     (str(project / "app" / "database" / "schema_v3.sql"), "app/database"),
     (str(project / "app" / "database" / "schema_v4.sql"), "app/database"),
+    (str(project / "app" / "database" / "schema_v5.sql"), "app/database"),
     (str(project / "app" / "assets" / "lockin_completion.wav"), "app/assets"),
     (str(project / "app" / "assets" / "icons"), "app/assets/icons"),
     (str(project / "packaging" / "starter_resources"), "starter_resources"),

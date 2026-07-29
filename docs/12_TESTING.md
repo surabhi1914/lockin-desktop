@@ -152,3 +152,17 @@ onedir/ZIP, reviews PyInstaller warnings, and validates executable metadata. Ins
 tests install, shortcuts, health/launch, uninstall retention, reinstall, and retained data. The final
 checker scans the intended Git tree, package, checksums, repository visibility, tag, and exact release
 assets.
+# LockIn 1.1 manual-session verification
+
+In addition to the complete test, coverage, Ruff, formatting, mypy, integrity, portable, and
+analytics gates, run:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\verify_manual_sessions.py
+```
+
+Acceptance covers past/today/future dates, duration bounds, archived categories, DST gaps/folds,
+cross-midnight allocation, all three final statuses, duplicate and confirmed overlaps,
+transactional rollback, analytics cache invalidation, portable v1 migration, v2 round trips,
+rebuilds, prohibited-row checks, parenting, accidental Enter suppression, subprocess suppression,
+and transient-window safety.

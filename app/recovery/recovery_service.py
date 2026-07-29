@@ -125,6 +125,7 @@ class RecoveryService:
                     **metrics,
                     "status": status,
                     "completion_reason": reason,
+                    "entry_source": "recovery",
                     "stopped_early_seconds": max(
                         0,
                         session.planned_focus_seconds - analysis.confirmed_planned_focus_seconds,

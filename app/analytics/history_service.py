@@ -23,6 +23,7 @@ class HistoryFilters:
     category_ids: tuple[str, ...] = ()
     statuses: tuple[str, ...] = ()
     device_ids: tuple[str, ...] = ()
+    entry_sources: tuple[str, ...] = ()
     overtime_only: bool = False
     distraction_only: bool = False
     minimum_focus_seconds: int | None = None
@@ -44,6 +45,7 @@ class HistoryRow:
     pause_seconds: int
     distraction_count: int
     status: str
+    entry_source: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -98,6 +100,7 @@ class HistoryService:
             ("s.category_id", filters.category_ids),
             ("s.status", filters.statuses),
             ("s.device_id", filters.device_ids),
+            ("s.entry_source", filters.entry_sources),
         ):
             if selected:
                 clauses.append(f"{column} IN ({','.join('?' for _ in selected)})")
@@ -144,6 +147,7 @@ class HistoryService:
                     row["total_pause_seconds"],
                     row["distraction_count"],
                     row["status"],
+                    row["entry_source"],
                 )
                 for row in rows
             ),
@@ -196,7 +200,17 @@ class HistoryService:
                 "WHERE ended_at_utc IS NOT NULL ORDER BY status"
             )
         )
-        return {"categories": categories, "devices": devices, "statuses": statuses}
+        return {
+            "categories": categories,
+            "devices": devices,
+            "statuses": statuses,
+            "sources": (
+                ("timer", "Timer"),
+                ("manual", "Manual"),
+                ("recovery", "Recovery"),
+                ("imported", "Imported"),
+            ),
+        }
 
     @staticmethod
     def _like(value: str) -> str:

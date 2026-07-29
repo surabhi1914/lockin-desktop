@@ -6,6 +6,7 @@ from pathlib import Path
 from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication
 
+from app.audio.completion_sound import CompletionSoundService
 from app.models.focus_session_draft import FocusSessionDraft
 from app.services.distraction_marker_service import DistractionMarkerService
 from app.services.focus_experience_service import FocusExperienceService
@@ -57,6 +58,7 @@ def build_phase4_harness(
     tray_available: bool = False,
     stop_decision: StopDecision = StopDecision.STOP_AND_REVIEW,
     exit_decision: ExitDecision = ExitDecision.KEEP_FOCUSING,
+    completion_sound: CompletionSoundService | None = None,
 ) -> Phase4Harness:
     config = path_config(tmp_path)
     categories, connection, _ = isolated_category_service(config)
@@ -99,6 +101,7 @@ def build_phase4_harness(
         FocusQuoteService(preview, selector=lambda quotes: quotes[0]),
         shortcut_settings,
         distractions,
+        completion_sound=completion_sound,
         stop_decision_provider=lambda: stop_decision,
         exit_decision_provider=lambda _available: exit_decision,
     )
@@ -126,6 +129,7 @@ def focus_draft(
     ritual: bool = False,
     full_screen: bool = False,
     quotes: bool = True,
+    sound: bool = False,
     overtime: bool = True,
     intention: str | None = "Do the important thing",
 ) -> FocusSessionDraft:
@@ -138,7 +142,7 @@ def focus_draft(
         intention,
         full_screen,
         quotes,
-        False,
+        sound,
         overtime,
         ritual,
         10,

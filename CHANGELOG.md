@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.1.0] - 2026-07-29
+
+- Added `+ Add Past Session` to Session History for finalized historical focus records.
+- Added strict timezone/DST, duration, category, future-date, duplicate, and overlap validation.
+- Added schema v5 source provenance and transactional manual session/segment persistence without
+  timer, runtime, recovery, pause, distraction, sleep, or intention records.
+- Added Manual badges and source filters to History and Statistics; manual focus contributes to
+  goals, streaks, dashboard records, heatmaps, and canonical analytics.
+- Added portable data schema v2 with source metadata, backed-up v1 migration, idempotent sync, and
+  v1/v2 import and database-rebuild compatibility.
+- Restored the Start Focus completion-sound option and bundled-sound playback at planned completion.
+- Editing and deletion remain intentionally unavailable because the portable contract has no safe
+  tombstone/update propagation policy.
+
 ## [1.0.1] - 2026-07-18
 
 - Fixed transient native-window flicker during UI interaction by parenting category-row controls

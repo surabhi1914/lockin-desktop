@@ -1,4 +1,4 @@
-"""Focus setup options with explicit future-feature boundaries."""
+"""Configurable options for a focus session."""
 
 from dataclasses import dataclass
 
@@ -33,8 +33,10 @@ class SessionOptionsPanel(QWidget):
         self.fullscreen_checkbox.setChecked(selected.start_in_fullscreen)
         self.quotes_checkbox.setChecked(selected.show_quotes)
         self.sound_checkbox.setChecked(selected.play_completion_sound)
-        self.sound_checkbox.setEnabled(False)
-        self.sound_checkbox.setToolTip("Completion sounds are not implemented in Phase 4.")
+        self.sound_checkbox.setToolTip(
+            "Play the local chime when planned focus completes. "
+            "The global sound setting and volume also apply."
+        )
         self.overtime_checkbox.setChecked(selected.overtime_enabled)
         self.ritual_checkbox.setChecked(selected.start_ritual_enabled)
         for checkbox in (
@@ -47,8 +49,8 @@ class SessionOptionsPanel(QWidget):
             form.addRow(checkbox)
         layout.addLayout(form)
         note = QLabel(
-            "Full screen, one static quote, overtime, and the start ritual run in Phase 4. "
-            "Completion sound remains unavailable."
+            "These choices apply to this session and are remembered for the next one. "
+            "Completion sound also follows the global setting and volume."
         )
         note.setProperty("muted", True)
         note.setWordWrap(True)

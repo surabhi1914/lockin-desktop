@@ -1,4 +1,4 @@
-# Categories and quotes in LockIn 1.0.1
+# Categories and quotes in LockIn 1.1.0
 
 Phase 3 provides permanent category management. The searchable setup selector contains active
 categories only and supports an explicit inline create dialog. The Categories page can search all

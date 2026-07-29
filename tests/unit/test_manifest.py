@@ -89,7 +89,7 @@ def test_manifest_rejects_convention_and_entity_changes() -> None:
     ("field", "value", "message"),
     [
         ("application", "Other", "application"),
-        ("data_schema_version", 2, "data schema"),
+        ("data_schema_version", 3, "data schema"),
         ("primary_timezone", "Mars/Olympus", "timezone"),
         ("last_successful_sync_at_utc", 7, "last_successful"),
     ],

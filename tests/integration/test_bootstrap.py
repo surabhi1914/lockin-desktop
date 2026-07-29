@@ -154,7 +154,7 @@ def test_inspection_script_reports_expected_values(isolated_config: PathConfig) 
         text=True,
     )
     assert completed.returncode == 0, completed.stderr
-    assert "Database schema version: 4" in completed.stdout
+    assert "Database schema version: 5" in completed.stdout
     assert "Starter-category count: 9" in completed.stdout
     assert "Quote count: 40" in completed.stdout
     assert "temporary_intention_text" not in completed.stdout

@@ -27,14 +27,30 @@ def current_schema_version(connection: sqlite3.Connection) -> int:
 def _apply_migration(connection: sqlite3.Connection, version: int) -> None:
     schema_path = files("app.database").joinpath(f"schema_v{version}.sql")
     schema_sql = schema_path.read_text(encoding="utf-8")
-    applied_at = format_utc(utc_now()).replace("'", "''")
-    migration_sql = (
-        "BEGIN IMMEDIATE;\n"
-        + schema_sql
-        + f"\nINSERT INTO schema_migrations(version, applied_at_utc) "
-        f"VALUES ({version}, '{applied_at}');\nCOMMIT;"
-    )
-    connection.executescript(migration_sql)
+    applied_at = format_utc(utc_now())
+    rebuilds_referenced_table = version == 5
+    if rebuilds_referenced_table:
+        connection.execute("PRAGMA foreign_keys = OFF")
+    try:
+        connection.executescript("BEGIN IMMEDIATE;\n" + schema_sql)
+        if rebuilds_referenced_table:
+            violations = connection.execute("PRAGMA foreign_key_check").fetchall()
+            if violations:
+                raise sqlite3.IntegrityError(
+                    f"schema v5 migration left foreign-key violations: {violations[:3]}"
+                )
+        connection.execute(
+            "INSERT INTO schema_migrations(version, applied_at_utc) VALUES (?, ?)",
+            (version, applied_at),
+        )
+        connection.commit()
+    except sqlite3.Error:
+        if connection.in_transaction:
+            connection.rollback()
+        raise
+    finally:
+        if rebuilds_referenced_table:
+            connection.execute("PRAGMA foreign_keys = ON")
 
 
 def initialize_database(database_path: Path) -> sqlite3.Connection:

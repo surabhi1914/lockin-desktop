@@ -1,4 +1,4 @@
-# LockIn 1.0.1 focus experience
+# LockIn 1.1.0 focus experience
 
 The setup form validates duration, active category, an optional intention up to 240 characters, and
 session options. Category changes are permanent; the intention remains temporary and memory-only.
@@ -69,3 +69,10 @@ poll cadence and excludes pause/sleep/completion waits. Large snapshot jumps adv
 hour in order. The completion audio service resets at session start and consumes its once-only guard
 on the first planned-completion presentation; pause, resume, stop, recovery, and overtime completion
 do not invoke it. Distraction feedback includes an accessible count and never changes timer state.
+# Historical focus without a timer run
+
+The Session History **+ Add Past Session** workflow writes a finalized historical aggregate
+directly. It never starts or simulates the timer. Actual duration is authoritative; one planned
+focus segment is stored when actual focus does not exceed the plan, and a contiguous overtime
+segment is added when it does. Both use one continuity group so analytics treat the activity as one
+continuous block.

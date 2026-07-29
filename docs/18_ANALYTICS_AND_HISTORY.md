@@ -56,3 +56,11 @@ Statistics export is an explicit, atomic UTF-8 daily-summary CSV written to a us
 outside `portable_data`. It never runs automatically and is not a synchronization format. Portable
 CSV remains the lossless raw interchange contract for devices, finalized sessions, segments,
 distractions, goals, categories, and quotes.
+# Manual records
+
+Default dashboard and statistics totals include finalized manual sessions. History and Statistics
+provide source filters for Timer, Manual, Recovery, and Imported records. Manual focus contributes
+to daily allocation, goals, streaks, heatmaps, records, category/device totals, planned completion,
+overtime, and stopped-early metrics. It contributes no pause, distraction, sleep, or recovery
+metrics. History detail exposes provenance timestamps, segments, sync ledger status, and checksum,
+but never an intention.

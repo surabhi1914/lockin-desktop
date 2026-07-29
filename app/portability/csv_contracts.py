@@ -36,7 +36,7 @@ DAILY_GOALS_HEADER: Final = (
     "created_at_utc",
     "updated_at_utc",
 )
-SESSIONS_HEADER: Final = (
+SESSIONS_V1_HEADER: Final = (
     "schema_version",
     "session_id",
     "device_id",
@@ -76,6 +76,13 @@ SESSIONS_HEADER: Final = (
     "updated_at_utc",
     "exported_at_utc",
     "record_checksum",
+)
+SESSIONS_HEADER: Final = (
+    *SESSIONS_V1_HEADER[:-2],
+    "entry_source",
+    "manual_entry_created_at_utc",
+    "manual_entry_updated_at_utc",
+    *SESSIONS_V1_HEADER[-2:],
 )
 SEGMENTS_HEADER: Final = (
     "schema_version",

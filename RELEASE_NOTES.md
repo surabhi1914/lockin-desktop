@@ -1,37 +1,51 @@
-# LockIn v1.0.1
+# LockIn v1.1.0
 
-LockIn v1.0.1 is a focused Windows hotfix for the transient window flash seen during normal UI
-interaction. It contains no feature addition, database migration, or user-history format change.
+LockIn v1.1.0 adds one focused feature: finalized manual logging for a focus session completed in the
+past but not tracked by the timer.
 
-## Fixed
+## Add Past Session
 
-The Categories page previously created each row's Rename and Archive buttons without a Qt parent and
-called `setVisible(True)` before adding them to the row layout. Qt therefore promoted every visible
-button to a native top-level window for about 31–32 ms. Opening or refreshing Categories rebuilt the
-rows, so one interaction could create many brief blank windows.
+Open **Session History** and select **+ Add Past Session**. Enter a local date and start time, actual
+focus duration, category, and optionally a different planned duration. The live preview shows the
+derived end and whether the historical result is completed, completed with overtime, or stopped
+early.
 
-The controls are now parented to their `CategoryRow`, added to the layout, and only then assigned
-visibility. Development-only tracing and automated regression coverage verify that normal
-interactions launch no processes, create no parentless transient widgets, preserve the main native
-window, and reuse existing pages.
+Manual records are clearly labelled **Manual** in History. Source filters are available in History
+and Statistics. Manual focus counts toward dashboard goals, streaks, heatmaps, personal records,
+category/device totals, planned completion, overtime, and stopped-early analysis.
 
-## Installation and compatibility
+## Safety and data compatibility
 
-Verify `LockIn-Setup-v1.0.1.exe` using `SHA256SUMS.txt`, then install it over v1.0.0. The per-user
-upgrade replaces program files while preserving runtime SQLite data, portable CSV history, settings,
-logs, backups, and diagnostics. The portable ZIP must be completely extracted before
-`LockIn\LockIn.exe` is run.
+Schema v5 adds explicit session provenance and manual creation metadata. A manual save is one SQLite
+transaction containing a finalized aggregate and one or two closed focus segments. It does not
+simulate the timer and creates no temporary intention, pause, distraction, heartbeat, sleep,
+runtime, or recovery record.
 
-Runtime data remains under `%LOCALAPPDATA%\LockIn`; portable history remains under the Windows
-Documents known folder at `LockIn\portable_data`. Uninstall removes program files and shortcuts but
-retains user data.
+Date/time validation is IANA-timezone aware. Nonexistent spring-forward times are rejected and
+ambiguous fall-back times require an explicit first/second occurrence. Exact duplicates are blocked;
+partial or containing overlaps require confirmation; unresolved active/recovery state blocks entry.
 
-## Privacy and limitations
+Portable data schema v2 carries the new source fields. Existing schema-v1 folders remain readable
+and are upgraded atomically with backups. Fresh rebuild and safe merge preserve manual provenance,
+segments, checksums, historical devices, and categories. Older rows with no reliable source are
+classified as Imported, never guessed as Manual.
 
-There is no telemetry, cloud account, Spotify integration, global keyboard hook, background service,
-or automatic update. Release artifacts contain sanitized starter resources and no runtime database,
-logs, backups, intentions, personal history, portable data, or credentials.
+Editing and deletion are intentionally unavailable in v1.1.0. The existing portable format has no
+safe deletion tombstone, so a local-only delete could return during re-import.
 
-This release is unsigned; SmartScreen may warn. Compare each download with the lowercase SHA-256
-digest in `SHA256SUMS.txt` from the same private GitHub Release. Windows 10/11 x64 remains the
-supported target. The existing v1.0.0 tag, Release, and assets remain unchanged.
+The separately reported completion-sound regression is also corrected: the Start Focus option is
+available again, and enabled sessions play the bundled local sound when planned focus completes.
+
+## Installation and privacy
+
+Install `LockIn-Setup-v1.1.0.exe` over v1.0.0 or v1.0.1. The per-user upgrade preserves runtime
+SQLite data, portable CSV history, settings, logs, backups, and diagnostics. The portable ZIP must
+be fully extracted before running `LockIn\LockIn.exe`.
+
+LockIn remains local-first with no telemetry, cloud account, Spotify integration, global keyboard
+hook, background service, or automatic update. Release artifacts contain sanitized starter
+resources and no runtime database, logs, backups, intentions, personal history, portable data, or
+credentials.
+
+This unsigned Windows 10/11 x64 release may trigger SmartScreen. Verify downloads against
+`SHA256SUMS.txt`. The v1.0.0 and v1.0.1 tags, Releases, and assets remain unchanged.

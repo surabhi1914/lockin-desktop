@@ -18,8 +18,8 @@ if ($process.ExitCode -ne 0) {
     throw "Packaged health check failed with exit code $($process.ExitCode)"
 }
 $report = Get-Content -Raw -LiteralPath $health | ConvertFrom-Json
-if ($report.result -ne "ok" -or $report.version -ne "1.0.1" -or -not $report.frozen) {
-    throw "Packaged health JSON did not report a healthy frozen 1.0.1 build."
+if ($report.result -ne "ok" -or $report.version -ne "1.1.0" -or -not $report.frozen) {
+    throw "Packaged health JSON did not report a healthy frozen 1.1.0 build."
 }
 if (-not (Test-Path -LiteralPath (Join-Path $env:LOCKIN_RUNTIME_ROOT "lockin.sqlite3"))) {
     throw "Packaged health check did not initialize the isolated SQLite database."

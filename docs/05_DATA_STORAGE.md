@@ -25,3 +25,10 @@ always memory-only/NULL.
 Immutable themes, sound, icon, migrations, and sanitized starter templates live in the installed
 bundle. LockIn never writes beside `LockIn.exe`. Installer upgrades cannot overwrite user data and
 uninstall never deletes history.
+# Manual-session provenance
+
+SQLite schema v5 adds `entry_source`, `manual_entry_created_at_utc`, and
+`manual_entry_updated_at_utc` to sessions. A manual session is finalized in one transaction with
+one or two closed focus segments and no runtime, heartbeat, recovery, pause, distraction, sleep, or
+intention row. Portable session CSV schema v2 carries the same provenance. Schema-v1 portable
+folders remain readable and are upgraded with backups before local synchronization.

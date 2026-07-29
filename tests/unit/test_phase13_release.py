@@ -7,6 +7,7 @@ import pytest
 
 import main as main_module
 from app.core import paths, runtime_environment
+from app.core.constants import DATABASE_SCHEMA_VERSION
 from app.core.errors import PathContractError
 from app.core.resources import ResourceError, ResourceLocator
 from app.health import run_health_check
@@ -104,9 +105,9 @@ def test_health_check_is_noninteractive_and_uses_isolated_paths(
     output = tmp_path / "diagnostics" / "health.json"
     assert run_health_check(output) == 0
     report = json.loads(output.read_text(encoding="utf-8"))
-    assert report["version"] == "1.0.1"
+    assert report["version"] == "1.1.0"
     assert report["result"] == "ok"
-    assert report["database"] == {"integrity": "ok", "schema_version": 4, "available": True}
+    assert report["database"] == {"integrity": "ok", "schema_version": 5, "available": True}
     assert "intention" not in output.read_text(encoding="utf-8").casefold()
 
 
@@ -115,3 +116,10 @@ def test_generated_icon_has_png_and_seven_ico_images() -> None:
     assert (root / "lockin.png").read_bytes().startswith(b"\x89PNG")
     reserved, kind, count = struct.unpack("<HHH", (root / "lockin.ico").read_bytes()[:6])
     assert (reserved, kind, count) == (0, 1, 7)
+
+
+def test_frozen_bundle_includes_every_database_migration() -> None:
+    root = Path(__file__).resolve().parents[2]
+    specification = (root / "packaging" / "LockIn.spec").read_text(encoding="utf-8")
+    for version in range(1, DATABASE_SCHEMA_VERSION + 1):
+        assert f'"schema_v{version}.sql"' in specification

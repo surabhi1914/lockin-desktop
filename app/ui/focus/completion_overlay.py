@@ -43,9 +43,9 @@ class CompletionOverlay(QWidget):
         self.overtime_button.clicked.connect(self.overtime_requested.emit)
         layout.addWidget(self.finish_button)
         layout.addWidget(self.overtime_button)
-        no_sound = QLabel("No sound is played. This session is still only in memory.")
-        no_sound.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(no_sound)
+        saved = QLabel("Your completed focus time has been saved locally.")
+        saved.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(saved)
         layout.addStretch(1)
 
     def present(self, snapshot: TimerSnapshot, *, overtime_enabled: bool) -> None:

@@ -202,3 +202,11 @@ only. `PathConfig` selects repository-local development roots or installed Local
 roots; no writable path derives from the executable directory. The health command validates Qt,
 resources, paths, SQLite migrations, and sanitized portable initialization without entering the GUI
 event loop. PyInstaller includes an explicit resource set generated independently of live history.
+# LockIn 1.1 manual-entry boundary
+
+`ManualSessionService` resolves a timezone-aware command, delegates overlap assessment to
+`SessionOverlapService`, and writes the session aggregate plus focus-only segments inside one
+`BEGIN IMMEDIATE` unit of work. The service calls portable synchronization only after commit, so
+sync failure leaves a valid local record marked pending. Existing analytics revision triggers make
+dashboard, statistics, and History reads observe the new record without a second source of truth.
+The UI is a parented modal dialog and does not invoke timer, recovery, power, process, or shell APIs.

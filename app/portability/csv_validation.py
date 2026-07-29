@@ -8,7 +8,7 @@ from pathlib import Path
 from app.core.errors import ValidationError
 from app.core.ids import canonicalize_uuid
 from app.core.time_utils import parse_local, parse_utc, validate_date
-from app.portability.csv_contracts import header_for
+from app.portability.csv_contracts import SESSIONS_V1_HEADER, header_for
 
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 
@@ -37,7 +37,13 @@ OPTIONAL_FIELDS = {
     "categories": {"category_icon"},
     "quotes": {"author", "category"},
     "daily_goals": {"effective_to_date"},
-    "sessions": {"ended_at_utc", "ended_at_local", "completion_reason"},
+    "sessions": {
+        "ended_at_utc",
+        "ended_at_local",
+        "completion_reason",
+        "manual_entry_created_at_utc",
+        "manual_entry_updated_at_utc",
+    },
     "segments": {
         "source_segment_id",
         "ended_at_utc",
@@ -107,6 +113,8 @@ UTC_TIMESTAMP_COLUMNS = {
     "ended_at_utc",
     "marked_at_utc",
     "exported_at_utc",
+    "manual_entry_created_at_utc",
+    "manual_entry_updated_at_utc",
 }
 LOCAL_TIMESTAMP_COLUMNS = {"started_at_local", "ended_at_local", "marked_at_local"}
 DATE_COLUMNS = {"effective_from_date", "effective_to_date", "local_date_started", "local_date"}
@@ -123,12 +131,14 @@ ENUM_VALUES = {
     "completion_reason": {
         "timer_completed",
         "manual_stop",
+        "manual_entry",
         "app_close",
         "system_shutdown",
         "crash_recovery",
         "sleep_detected",
         "data_repair",
     },
+    "entry_source": {"timer", "manual", "recovery", "imported"},
     "segment_type": {"focus", "pause"},
     "pause_classification": {"none", "short_grace_pause", "continuity_break", "system_sleep"},
     "focus_phase": {"planned", "overtime", "not_applicable"},
@@ -141,9 +151,14 @@ def _issue(
     return ValidationIssue(path, row, column, code, message)
 
 
-def validate_csv(path: Path, entity: str) -> tuple[ValidationIssue, ...]:
+def validate_csv(
+    path: Path,
+    entity: str,
+    *,
+    data_schema_version: int | None = None,
+) -> tuple[ValidationIssue, ...]:
     """Validate one CSV without changing it."""
-    expected = header_for(entity)
+    current = header_for(entity)
     issues: list[ValidationIssue] = []
     try:
         with path.open("r", encoding="utf-8", newline="") as handle:
@@ -158,6 +173,12 @@ def validate_csv(path: Path, entity: str) -> tuple[ValidationIssue, ...]:
         return (_issue(path, "missing_header", "CSV is empty and has no header"),)
 
     actual = tuple(rows[0])
+    accepted = (
+        (current, SESSIONS_V1_HEADER)
+        if entity == "sessions" and data_schema_version in (None, 1)
+        else (current,)
+    )
+    expected = actual if actual in accepted else current
     duplicates = sorted({name for name in actual if actual.count(name) > 1})
     missing = [name for name in expected if name not in actual]
     unexpected = [name for name in actual if name not in expected]

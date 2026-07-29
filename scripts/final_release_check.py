@@ -49,6 +49,8 @@ REQUIRED_DOCS = (
     "docs/PHASE_13_ACCEPTANCE_CHECKLIST.md",
     "docs/FINAL_PROJECT_ACCEPTANCE.md",
     "docs/HOTFIX_1_0_1_ACCEPTANCE.md",
+    "docs/MANUAL_PAST_SESSION_LOGGING.md",
+    "docs/V1_1_0_ACCEPTANCE_CHECKLIST.md",
 )
 V1_0_0_COMMIT = "0a05c9619eea749bedfa3475359441935c819688"
 V1_0_0_ASSETS = {
@@ -63,6 +65,21 @@ V1_0_0_ASSETS = {
     "SHA256SUMS.txt": (
         185,
         "sha256:5366c19295183bc5eb9aa1d3aad6aca6fa54649086e2d4c40d86a9f3a2bf9287",
+    ),
+}
+V1_0_1_COMMIT = "b64793c0834b844a9b5ffe5087092d9e1bcc63b9"
+V1_0_1_ASSETS = {
+    "LockIn-Setup-v1.0.1.exe": (
+        40_913_041,
+        "sha256:0ed3a10382c5b0b130f2c8eb577daf254613814e74967c8a9539ae7477e98a7b",
+    ),
+    "LockIn-v1.0.1-portable.zip": (
+        56_850_710,
+        "sha256:71b0a0369e9d93338141d049464c4a4dac90a8fdf43f01c781d83c40de3f072c",
+    ),
+    "SHA256SUMS.txt": (
+        185,
+        "sha256:a67c471eb692f05e5999d70488704f9bc3541085d1b7f9e1db7c2bf63648308a",
     ),
 }
 
@@ -89,7 +106,24 @@ def check(repo: Path, mode: str) -> tuple[str, ...]:
         errors.extend(_bundle_errors(repo))
         errors.extend(_health_errors(repo))
     errors.extend(_repository_visibility_errors(repo, required=mode == "post-publication"))
-    errors.extend(_v1_0_0_preservation_errors(repo, required=mode == "post-publication"))
+    errors.extend(
+        _prior_release_preservation_errors(
+            repo,
+            version="1.0.0",
+            expected_commit=V1_0_0_COMMIT,
+            expected_assets=V1_0_0_ASSETS,
+            required=mode == "post-publication",
+        )
+    )
+    errors.extend(
+        _prior_release_preservation_errors(
+            repo,
+            version="1.0.1",
+            expected_commit=V1_0_1_COMMIT,
+            expected_assets=V1_0_1_ASSETS,
+            required=mode == "post-publication",
+        )
+    )
     if mode == "post-publication":
         errors.extend(_publication_errors(repo))
     return tuple(errors)
@@ -264,32 +298,40 @@ def _publication_errors(repo: Path) -> list[str]:
     return errors
 
 
-def _v1_0_0_preservation_errors(repo: Path, *, required: bool) -> list[str]:
+def _prior_release_preservation_errors(
+    repo: Path,
+    *,
+    version: str,
+    expected_commit: str,
+    expected_assets: dict[str, tuple[int, str]],
+    required: bool,
+) -> list[str]:
     errors: list[str] = []
-    tag_commit = _run(repo, "git", "rev-list", "-n", "1", "v1.0.0").stdout.strip()
-    if tag_commit != V1_0_0_COMMIT:
-        errors.append("v1.0.0 tag no longer resolves to the original release commit")
+    tag_name = f"v{version}"
+    tag_commit = _run(repo, "git", "rev-list", "-n", "1", tag_name).stdout.strip()
+    if tag_commit != expected_commit:
+        errors.append(f"{tag_name} tag no longer resolves to the original release commit")
     release = _run(
         repo,
         "gh",
         "release",
         "view",
-        "v1.0.0",
+        tag_name,
         "--json",
         "assets,tagName,isDraft,isPrerelease",
     )
     if release.returncode != 0:
         if required:
-            errors.append("v1.0.0 GitHub Release could not be verified")
+            errors.append(f"{tag_name} GitHub Release could not be verified")
         return errors
     data = json.loads(release.stdout)
-    if data.get("tagName") != "v1.0.0" or data.get("isDraft") or data.get("isPrerelease"):
-        errors.append("v1.0.0 GitHub Release identity or stability changed")
+    if data.get("tagName") != tag_name or data.get("isDraft") or data.get("isPrerelease"):
+        errors.append(f"{tag_name} GitHub Release identity or stability changed")
     assets = {
         item.get("name"): (item.get("size"), item.get("digest")) for item in data.get("assets", [])
     }
-    if assets != V1_0_0_ASSETS:
-        errors.append("v1.0.0 GitHub Release assets changed from the recorded size/digest set")
+    if assets != expected_assets:
+        errors.append(f"{tag_name} GitHub Release assets changed from the recorded size/digest set")
     return errors
 
 

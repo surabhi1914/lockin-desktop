@@ -117,26 +117,27 @@ class PortableImportValidator:
     def _read_all(
         self, root: Path, manifest: PortableManifest
     ) -> tuple[dict[str, list[PortableSourceRow]], tuple[Path, ...]]:
-        del manifest
         result: dict[str, list[PortableSourceRow]] = {
             entity: [] for entity in (*ROOT_ENTITIES, *PARTITION_ENTITIES)
         }
         files: list[Path] = [root / "manifest.json"]
         for entity in ROOT_ENTITIES:
             path = root / f"{entity}.csv"
-            result[entity].extend(self._read_csv(path, entity))
+            result[entity].extend(self._read_csv(path, entity, manifest.data_schema_version))
             files.append(path)
         for entity in PARTITION_ENTITIES:
             entity_files = sorted((root / entity).glob("*/*.csv"))
             self._validate_partition_set(root, entity, entity_files)
             for path in entity_files:
-                result[entity].extend(self._read_csv(path, entity))
+                result[entity].extend(self._read_csv(path, entity, manifest.data_schema_version))
                 files.append(path)
         self._reject_cross_file_duplicates(result)
         return result, tuple(files)
 
-    def _read_csv(self, path: Path, entity: str) -> tuple[PortableSourceRow, ...]:
-        issues = validate_csv(path, entity)
+    def _read_csv(
+        self, path: Path, entity: str, data_schema_version: int
+    ) -> tuple[PortableSourceRow, ...]:
+        issues = validate_csv(path, entity, data_schema_version=data_schema_version)
         if issues:
             detail = "; ".join(
                 f"{issue.error_code} row={issue.row_number}: {issue.message}" for issue in issues
@@ -330,6 +331,24 @@ class PortableImportValidator:
         complete_flag = values["completed_planned_timer"] == "true"
         if complete_flag != (completed == planned):
             raise ImportValidationError(f"session completion flag is invalid: {row.record_id}")
+        source = values.get("entry_source")
+        if source == "manual":
+            if values.get("completion_reason") != "manual_entry":
+                raise ImportValidationError(
+                    f"manual session has an invalid completion reason: {row.record_id}"
+                )
+            if not values.get("manual_entry_created_at_utc"):
+                raise ImportValidationError(
+                    f"manual session has no creation timestamp: {row.record_id}"
+                )
+        elif source is not None and (
+            values.get("completion_reason") == "manual_entry"
+            or values.get("manual_entry_created_at_utc")
+            or values.get("manual_entry_updated_at_utc")
+        ):
+            raise ImportValidationError(
+                f"non-manual session contains manual metadata: {row.record_id}"
+            )
 
     def _reconstruct_segments(
         self, rows: list[PortableSourceRow]
@@ -548,12 +567,29 @@ def _session_from_csv(values: dict[str, str]) -> PersistedSession:
         "quotes_enabled",
         "start_ritual_enabled",
     }
-    optional_fields = {"ended_at_utc", "ended_at_local", "completion_reason"}
+    optional_fields = {
+        "ended_at_utc",
+        "ended_at_local",
+        "completion_reason",
+        "manual_entry_created_at_utc",
+        "manual_entry_updated_at_utc",
+    }
     fields = PersistedSession.__dataclass_fields__
     converted: dict[str, object] = {}
     for name in fields:
         if name == "record_checksum":
             converted[name] = values.get(name) or None
+        elif name == "entry_source" and name not in values:
+            converted[name] = "imported"
+        elif (
+            name
+            in {
+                "manual_entry_created_at_utc",
+                "manual_entry_updated_at_utc",
+            }
+            and name not in values
+        ):
+            converted[name] = None
         elif name in integer_fields:
             converted[name] = int(values[name])
         elif name in boolean_fields:

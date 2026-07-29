@@ -105,7 +105,7 @@ def manifest_from_dict(data: dict[str, Any]) -> PortableManifest:
         raise ValidationError(f"Manifest application must be {APPLICATION_NAME!r}")
     if manifest_version != MANIFEST_SCHEMA_VERSION:
         raise ValidationError(f"Unsupported manifest schema version: {manifest_version}")
-    if data_version != DATA_SCHEMA_VERSION:
+    if data_version not in {1, DATA_SCHEMA_VERSION}:
         raise ValidationError(f"Unsupported data schema version: {data_version}")
     parse_utc(created)
     parse_utc(updated)

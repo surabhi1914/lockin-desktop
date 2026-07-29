@@ -71,3 +71,11 @@ mismatch blocks staging. Repair the source deliberately; do not edit only a chec
 against the live database, export the JSON report and compare both records. A failed staging build
 does not replace the live database; preserve its diagnostic path and timestamped backup. Close active
 focus and resolve unfinished runtime state before retrying.
+# A past session cannot be saved
+
+- Exact time/category duplicates are blocked.
+- Resolve any active or unfinished recovery session before adding historical time.
+- For a fall-back clock hour, select **First occurrence** or **Second occurrence**.
+- A spring-forward wall time that never occurred cannot be recorded; choose the actual valid time.
+- If local save succeeds but portable storage is unavailable, LockIn reports
+  `Past session saved locally; portable sync pending.` Use **Sync Now** after storage is available.

@@ -182,3 +182,16 @@ Migration v4 adds database triggers that reject overlapping `daily_goals` ranges
 `analytics_revision` metadata key, and increments it after session, segment, distraction, or goal
 mutations. Dashboard/statistics caches therefore invalidate after finalization, recovery, import,
 and goal changes without making UI widgets calculate business metrics.
+# Schema version 5
+
+Migration v5 rebuilds `sessions` to extend the completion-reason constraint with `manual_entry` and
+adds:
+
+- `entry_source`: `timer`, `manual`, `recovery`, or `imported`;
+- `manual_entry_created_at_utc`: required only for manual entries;
+- `manual_entry_updated_at_utc`: reserved for a future fully transactional editor.
+
+Legacy recovery rows are classified from recovery metadata and completion reason; normal timer rows
+remain timer rows. Imported schema-v1 portable rows with no reliable provenance become `imported`.
+Manual sessions require finalized focus-only segments, zero pause/distraction aggregates, one
+continuity group, no runtime or recovery rows, and a source-aware checksum.

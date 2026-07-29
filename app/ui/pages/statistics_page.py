@@ -62,6 +62,7 @@ class StatisticsPage(QWidget):
         self.category = QComboBox()
         self.status = QComboBox()
         self.device = QComboBox()
+        self.source = QComboBox()
         self.include_overtime = QCheckBox("Include overtime")
         self.include_overtime.setChecked(True)
         self.include_recovered = QCheckBox("Include recovered")
@@ -75,9 +76,13 @@ class StatisticsPage(QWidget):
         form.addRow("Category", self.category)
         form.addRow("Status", self.status)
         form.addRow("Device", self.device)
+        form.addRow("Source", self.source)
         form.addRow("", self.include_overtime)
         form.addRow("", self.include_recovered)
         form.addRow("Minimum focus", self.minimum_minutes)
+        includes_manual = QLabel("Totals include manually added sessions unless filtered out.")
+        includes_manual.setProperty("muted", True)
+        form.addRow("", includes_manual)
         buttons = QHBoxLayout()
         self.apply_button = QPushButton("Apply")
         self.export_button = QPushButton("Export Statistics CSV")
@@ -154,6 +159,7 @@ class StatisticsPage(QWidget):
             self.include_overtime.isChecked(),
             self.include_recovered.isChecked(),
             self.minimum_minutes.value() * 60,
+            entry_sources=self._selected(self.source),
         )
         try:
             result = self._analytics.calculate(filters)
@@ -204,6 +210,7 @@ class StatisticsPage(QWidget):
             (self.category, "All categories"),
             (self.status, "All statuses"),
             (self.device, "All devices"),
+            (self.source, "All sources"),
         ):
             combo.addItem(label, "")
         if self._history is None:
@@ -215,6 +222,8 @@ class StatisticsPage(QWidget):
             self.status.addItem(label, identifier)
         for identifier, label in options["devices"]:
             self.device.addItem(label, identifier)
+        for identifier, label in options["sources"]:
+            self.source.addItem(label, identifier)
 
     def _preset_changed(self) -> None:
         preset = DatePreset(str(self.preset.currentData()))

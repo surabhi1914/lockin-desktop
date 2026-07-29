@@ -1,5 +1,5 @@
 #define MyAppName "LockIn"
-#define MyAppVersion "1.0.1"
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "Surabhi Nair"
 #define MyAppExeName "LockIn.exe"
 
@@ -14,7 +14,7 @@ DefaultGroupName=LockIn
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 OutputDir=..\release
-OutputBaseFilename=LockIn-Setup-v1.0.1
+OutputBaseFilename=LockIn-Setup-v1.1.0
 SetupIconFile=..\app\assets\icons\lockin.ico
 UninstallDisplayIcon={app}\LockIn.exe
 Compression=lzma2
@@ -22,11 +22,11 @@ SolidCompression=yes
 WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-VersionInfoVersion=1.0.1.0
+VersionInfoVersion=1.1.0.0
 VersionInfoCompany=Surabhi Nair
 VersionInfoDescription=LockIn Focus Timer Installer
 VersionInfoProductName=LockIn
-VersionInfoProductVersion=1.0.1
+VersionInfoProductVersion=1.1.0
 LicenseFile=..\LICENSE
 ChangesAssociations=no
 CloseApplications=yes

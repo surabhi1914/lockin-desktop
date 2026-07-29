@@ -16,6 +16,7 @@ from app.quotes.quote_store import QuoteStore
 from app.services.category_service import CategoryService
 from app.services.daily_goal_service import DailyGoalService
 from app.services.focus_session_coordinator import FocusSessionCoordinator
+from app.services.manual_session_service import ManualSessionService
 from app.services.portable_preview_service import PortablePreviewService
 from app.services.portable_sync_coordinator import PortableSyncCoordinator
 from app.services.session_aggregate_service import SessionAggregateService
@@ -97,6 +98,7 @@ def build_page_registry(
     analytics: AnalyticsService | None = None,
     history: HistoryService | None = None,
     statistics_exporter: StatisticsExportService | None = None,
+    manual_sessions: ManualSessionService | None = None,
 ) -> PageRegistry:
     managed_quotes = quote_store or QuoteStore(
         portable_root / "quotes.csv", runtime_root / "quote_backups"
@@ -137,7 +139,7 @@ def build_page_registry(
                 "Recent local sessions",
                 3,
                 "Y",
-                lambda: HistoryPage(session_aggregates, history),
+                lambda: HistoryPage(session_aggregates, history, manual_sessions),
             ),
             PageDefinition(
                 "categories",

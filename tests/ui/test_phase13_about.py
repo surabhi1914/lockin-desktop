@@ -11,7 +11,7 @@ def test_about_dialog_has_release_privacy_and_data_folder_actions(qtbot, tmp_pat
     dialog = AboutDialog(tmp_path / "runtime", tmp_path / "portable")
     qtbot.addWidget(dialog)
     text = "\n".join(label.text() for label in dialog.findChildren(QLabel))
-    assert "LockIn 1.0.1" in text
+    assert "LockIn 1.1.0" in text
     assert "Surabhi Nair" in text
     assert "no telemetry" in text
     buttons = {button.text() for button in dialog.findChildren(QPushButton)}

@@ -13,6 +13,7 @@ class AnalyticsFilters:
     include_overtime: bool = True
     include_recovered: bool = True
     minimum_focus_seconds: int = 0
+    entry_sources: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

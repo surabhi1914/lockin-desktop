@@ -74,6 +74,7 @@ class AnalyticsService:
         for column, selected in (
             ("s.category_id", filters.category_ids),
             ("s.device_id", filters.device_ids),
+            ("s.entry_source", filters.entry_sources),
         ):
             if selected:
                 clauses.append(f"{column} IN ({','.join('?' for _ in selected)})")

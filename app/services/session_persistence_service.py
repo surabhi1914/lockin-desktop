@@ -139,6 +139,7 @@ class SessionPersistenceService:
                         "start_ritual_enabled": int(draft.start_ritual_enabled),
                         "created_at_utc": format_utc(timestamp),
                         "updated_at_utc": format_utc(timestamp),
+                        "entry_source": "timer",
                     }
                 )
                 self._insert_segment(

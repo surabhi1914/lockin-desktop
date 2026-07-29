@@ -4,6 +4,7 @@ import sqlite3
 from dataclasses import replace
 from pathlib import Path
 
+from app.core.constants import DATA_SCHEMA_VERSION
 from app.core.time_utils import format_utc, utc_now
 from app.database.repositories.device_repository import DeviceRepository
 from app.database.repositories.distraction_repository import DistractionRepository
@@ -102,6 +103,8 @@ class PortableSyncService:
         skipped = repaired = 0
         try:
             manifest = load_manifest(self._manifest_path)
+            if manifest.data_schema_version < DATA_SCHEMA_VERSION:
+                manifest = self._upgrade_schema(manifest, timestamp)
             rows = self.rows_for_sessions(sessions, timestamp)
             for row in rows:
                 action, path, oversized = self._write_row(row, manifest, timestamp)
@@ -209,6 +212,47 @@ class PortableSyncService:
             destination,
             oversized,
         )
+
+    def _upgrade_schema(self, manifest: PortableManifest, timestamp: str) -> PortableManifest:
+        if manifest.data_schema_version != 1:
+            raise PortableSyncError(
+                f"cannot migrate portable data schema {manifest.data_schema_version}"
+            )
+        for path in sorted((self._root / "sessions").glob("*/*.csv")):
+            rows = read_csv_rows(path, "sessions")
+            migrated: list[dict[str, str]] = []
+            for row in rows:
+                if "entry_source" in row:
+                    migrated.append(row)
+                    continue
+                session = self._sessions.get(row["session_id"])
+                migrated.append(
+                    {
+                        **row,
+                        "entry_source": (
+                            session.entry_source if session is not None else "imported"
+                        ),
+                        "manual_entry_created_at_utc": (
+                            session.manual_entry_created_at_utc or "" if session is not None else ""
+                        ),
+                        "manual_entry_updated_at_utc": (
+                            session.manual_entry_updated_at_utc or "" if session is not None else ""
+                        ),
+                    }
+                )
+            self._writer.replace(
+                path,
+                "sessions",
+                migrated,
+                backup_name=f"{path.name}.schema-v1.bak",
+            )
+        upgraded = replace(
+            manifest,
+            data_schema_version=DATA_SCHEMA_VERSION,
+            updated_at_utc=timestamp,
+        )
+        save_manifest_atomic(self._manifest_path, upgraded)
+        return upgraded
 
     def _expected_path(self, row: PortableRow, manifest: PortableManifest) -> Path:
         if row.entity == "devices":

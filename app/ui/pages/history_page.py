@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QPushButton,
     QSpinBox,
     QTableWidget,
@@ -26,7 +27,9 @@ from PySide6.QtWidgets import (
 )
 
 from app.analytics.history_service import HistoryFilters, HistoryService, SessionDetail
+from app.services.manual_session_service import ManualSessionService
 from app.services.session_aggregate_service import SessionAggregateService
+from app.ui.dialogs.add_past_session_dialog import AddPastSessionDialog
 from app.ui.widgets import EmptyState, PageHeader
 
 
@@ -42,6 +45,9 @@ class SessionDetailDialog(QDialog):
         session = detail.session
         lines = [
             f"Session ID: {session.session_id}",
+            f"Entry source: {session.entry_source.title()}",
+            f"Manual creation: {session.manual_entry_created_at_utc or '—'}",
+            f"Manual update: {session.manual_entry_updated_at_utc or '—'}",
             f"Category: {session.category_name_snapshot}",
             f"Status/reason: {session.status} / {session.completion_reason or '—'}",
             f"Started/ended: {session.started_at_local} / {session.ended_at_local}",
@@ -93,23 +99,38 @@ class HistoryPage(QWidget):
         self,
         aggregate_service: SessionAggregateService | None = None,
         history_service: HistoryService | None = None,
+        manual_session_service: ManualSessionService | None = None,
     ) -> None:
         super().__init__()
         self._aggregates = aggregate_service
         self._history = history_service
+        self._manual_sessions = manual_session_service
         self._page = 1
         self._session_ids: list[str] = []
         self.setObjectName("page_history")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(28, 24, 28, 24)
         layout.setSpacing(12)
-        layout.addWidget(PageHeader("Session History", "Read-only finalized session records."))
+        header = QHBoxLayout()
+        header.addWidget(
+            PageHeader(
+                "Session History",
+                "Finalized timer, recovery, imported, and manually added sessions.",
+            ),
+            1,
+        )
+        self.add_past_session_button = QPushButton("+ Add Past Session")
+        self.add_past_session_button.setAccessibleName("Add a past focus session")
+        self.add_past_session_button.setEnabled(self._manual_sessions is not None)
+        header.addWidget(self.add_past_session_button)
+        layout.addLayout(header)
         filters = QGridLayout()
         self.search = QLineEdit()
         self.search.setPlaceholderText("Search category or full session ID")
         self.category = QComboBox()
         self.status = QComboBox()
         self.device = QComboBox()
+        self.source = QComboBox()
         self.sort = QComboBox()
         for label, value in (
             ("Newest", "started_desc"),
@@ -136,6 +157,7 @@ class HistoryPage(QWidget):
         filters.addWidget(self.category, 0, 2)
         filters.addWidget(self.status, 0, 3)
         filters.addWidget(self.device, 0, 4)
+        filters.addWidget(self.source, 0, 5)
         filters.addWidget(self.sort, 1, 0)
         filters.addWidget(self.minimum_minutes, 1, 1)
         filters.addWidget(self.maximum_minutes, 1, 2)
@@ -146,7 +168,7 @@ class HistoryPage(QWidget):
         filters.addWidget(QLabel("To"), 2, 2)
         filters.addWidget(self.to_date, 2, 3)
         layout.addLayout(filters)
-        self.table = QTableWidget(0, 9)
+        self.table = QTableWidget(0, 10)
         self.table.setHorizontalHeaderLabels(
             (
                 "Date",
@@ -158,6 +180,7 @@ class HistoryPage(QWidget):
                 "Pause",
                 "Distractions",
                 "Status",
+                "Source",
             )
         )
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
@@ -185,6 +208,7 @@ class HistoryPage(QWidget):
             self.category,
             self.status,
             self.device,
+            self.source,
             self.sort,
             self.minimum_minutes,
             self.maximum_minutes,
@@ -205,6 +229,7 @@ class HistoryPage(QWidget):
         self.previous_button.clicked.connect(self._previous)
         self.next_button.clicked.connect(self._next)
         self.details_button.clicked.connect(self._details)
+        self.add_past_session_button.clicked.connect(self._add_past_session)
         self.table.cellDoubleClicked.connect(lambda _row, _column: self._details())
         self.refresh()
 
@@ -223,6 +248,7 @@ class HistoryPage(QWidget):
                     row.total_pause_seconds,
                     row.distraction_count,
                     row.status,
+                    "Timer",
                 )
                 for row in rows
             ]
@@ -241,6 +267,7 @@ class HistoryPage(QWidget):
                     row.pause_seconds,
                     row.distraction_count,
                     row.status,
+                    row.entry_source.title(),
                 )
                 for row in result.rows
             ]
@@ -248,7 +275,10 @@ class HistoryPage(QWidget):
         self.table.setRowCount(len(values))
         for row_index, row in enumerate(values):
             for column, value in enumerate(row):
-                self.table.setItem(row_index, column, QTableWidgetItem(str(value)))
+                item = QTableWidgetItem(str(value))
+                if column == 9 and value == "Manual":
+                    item.setToolTip("This session was added manually after it occurred.")
+                self.table.setItem(row_index, column, item)
         self.table.setVisible(bool(values))
         self.empty.setVisible(not values)
         pages = max(1, (total + 49) // 50)
@@ -271,6 +301,7 @@ class HistoryPage(QWidget):
             category_ids=self._selected(self.category),
             statuses=self._selected(self.status),
             device_ids=self._selected(self.device),
+            entry_sources=self._selected(self.source),
             overtime_only=self.overtime_only.isChecked(),
             distraction_only=self.distraction_only.isChecked(),
             minimum_focus_seconds=self.minimum_minutes.value() * 60,
@@ -284,6 +315,7 @@ class HistoryPage(QWidget):
             (self.category, "All categories"),
             (self.status, "All statuses"),
             (self.device, "All devices"),
+            (self.source, "All sources"),
         ):
             combo.addItem(label, "")
         if self._history is None:
@@ -295,6 +327,8 @@ class HistoryPage(QWidget):
             self.status.addItem(label, identifier)
         for identifier, label in options["devices"]:
             self.device.addItem(label, identifier)
+        for identifier, label in options["sources"]:
+            self.source.addItem(label, identifier)
 
     def _filters_changed(self, *_args: object) -> None:
         self._page = 1
@@ -315,6 +349,21 @@ class HistoryPage(QWidget):
         if not 0 <= row < len(self._session_ids):
             return
         SessionDetailDialog(self._history.detail(self._session_ids[row]), self).exec()
+
+    def _add_past_session(self) -> None:
+        if self._manual_sessions is None:
+            return
+        dialog = AddPastSessionDialog(self._manual_sessions, self)
+        if dialog.exec() != QDialog.DialogCode.Accepted or dialog.result_record is None:
+            return
+        self._page = 1
+        self.refresh()
+        result = dialog.result_record
+        QMessageBox.information(
+            self,
+            "Past session saved",
+            ("Past session saved and synchronized." if result.portable_synced else result.message),
+        )
 
     @staticmethod
     def _selected(combo: QComboBox) -> tuple[str, ...]:

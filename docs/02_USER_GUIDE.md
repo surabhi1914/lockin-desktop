@@ -42,3 +42,16 @@ Session History is read-only, searchable, filtered, sorted, paginated, and expos
 sync evidence without intentions.
 
 Use **Help > About LockIn** for version, build, privacy statement, and data-folder buttons.
+# Manual past sessions
+
+Open **Session History** and choose **+ Add Past Session** to record focus completed without the
+timer. Enter the local date, start time, actual focus duration, category, and optionally a different
+planned duration. Archived categories are available under the labelled historical group. The
+preview shows the derived end time and whether the result is completed, completed with overtime, or
+stopped early.
+
+Manual records carry a visible **Manual** source badge. They count toward goals, streaks, dashboard
+records, heatmaps, and statistics. They do not reconstruct intentions, pauses, distractions, sleep,
+heartbeat, or recovery data. An exact duplicate is blocked; other overlaps require confirmation.
+Ambiguous fall-back times require selecting the first or second occurrence, and nonexistent
+spring-forward times are rejected.

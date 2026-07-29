@@ -41,6 +41,7 @@ from app.services.focus_experience_service import FocusExperienceService
 from app.services.focus_quote_service import FocusQuoteService
 from app.services.focus_session_coordinator import FocusSessionCoordinator
 from app.services.focus_window_service import FocusWindowService
+from app.services.manual_session_service import ManualSessionService
 from app.services.new_device_setup_service import NewDeviceSetupService
 from app.services.portable_preview_service import PortablePreviewService
 from app.services.portable_sync_coordinator import PortableSyncCoordinator
@@ -171,6 +172,7 @@ class ApplicationContext:
     dashboard_service: DashboardService
     analytics_service: AnalyticsService
     history_service: HistoryService
+    manual_session_service: ManualSessionService
     statistics_exporter: StatisticsExportService
     application_import_service: ApplicationImportService
     unfinished_sessions: tuple[UnfinishedSession, ...]
@@ -302,6 +304,11 @@ def create_application(
         dashboard_service = DashboardService(connection)
         analytics_service = AnalyticsService(connection, current_device_id=device_id)
         history_service = HistoryService(connection)
+        manual_session_service = ManualSessionService(
+            connection,
+            device_id,
+            post_create_sync=portable_sync.sync_session,
+        )
         statistics_exporter = StatisticsExportService(resolved.portable_root)
         page_registry = build_page_registry(
             preview_service,
@@ -321,6 +328,7 @@ def create_application(
             analytics_service,
             history_service,
             statistics_exporter,
+            manual_session_service,
         )
         window = MainWindow(page_registry, settings_service)
         window.configure_about(resolved.runtime_root, resolved.portable_root)
@@ -398,6 +406,7 @@ def create_application(
             dashboard_service=dashboard_service,
             analytics_service=analytics_service,
             history_service=history_service,
+            manual_session_service=manual_session_service,
             statistics_exporter=statistics_exporter,
             application_import_service=application_import_service,
             unfinished_sessions=unfinished_sessions,

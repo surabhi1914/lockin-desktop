@@ -1,7 +1,7 @@
 {
   "application": "LockIn",
   "manifest_schema_version": 1,
-  "data_schema_version": 1,
+  "data_schema_version": 2,
   "created_at_utc": "2000-01-01T00:00:00Z",
   "updated_at_utc": "2000-01-01T00:00:00Z",
   "last_successful_sync_at_utc": null,

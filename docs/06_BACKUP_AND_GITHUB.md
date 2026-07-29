@@ -8,7 +8,8 @@ diagnostics, intentions, credentials, or unreviewed personal history in a public
 Atomic CSV replacement keeps runtime backups. Database import keeps a verified timestamped backup
 before promotion. Keep independent backups of `%LOCALAPPDATA%\LockIn` and the selected portable root.
 
-The LockIn source repository and v1.0.0/v1.0.1 Releases are private. Release assets contain only the
-installer, portable application ZIP, and SHA-256 checksums; portable history is never a release
-asset. Repository privacy does not replace account security, collaborator review, or endpoint
-encryption.
+The LockIn source repository and v1.0.0/v1.0.1/v1.1.0 Releases are private. Release assets contain
+only the installer, portable application ZIP, and SHA-256 checksums; portable history is never a
+release asset. The immutable v1.0.0 and v1.0.1 tags, Releases, and asset digest sets are checked
+again before v1.1.0 publication. Repository privacy does not replace account security,
+collaborator review, or endpoint encryption.

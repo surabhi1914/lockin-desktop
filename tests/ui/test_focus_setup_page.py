@@ -37,6 +37,7 @@ def test_setup_defaults_and_validation(qapp: QApplication, qtbot: object, tmp_pa
                 options.start_ritual_enabled,
             )
         )
+        assert page.options_panel.sound_checkbox.isEnabled()
         page.duration_input.set_duration(0, 0)
         assert not page.start_button.isEnabled()
         page.duration_input.set_duration(0, 1)
@@ -64,6 +65,29 @@ def test_draft_snapshot_and_intention_never_enter_qsettings(
         settings = page._settings.qsettings
         assert all("intention" not in key.casefold() for key in settings.allKeys())
         assert "Finish the portfolio" not in str(settings.value("focus_setup/last_category_id"))
+    finally:
+        coordinator.shutdown()
+        connection.close()  # type: ignore[attr-defined]
+
+
+def test_completion_sound_can_be_reenabled_and_remembered(
+    qapp: QApplication, qtbot: object, tmp_path: Path
+) -> None:
+    settings_path = tmp_path / "settings.ini"
+    settings = SettingsService(QSettings(str(settings_path), QSettings.Format.IniFormat))
+    settings.set_focus_play_completion_sound(False)
+    service, connection, _ = isolated_category_service(path_config(tmp_path))
+    coordinator = FocusSessionCoordinator(service, clock_factory=ManualClock)
+    page = FocusSetupPage(service, settings, coordinator)
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+    try:
+        assert page.options_panel.sound_checkbox.isEnabled()
+        assert not page.options_panel.sound_checkbox.isChecked()
+        page.options_panel.sound_checkbox.setChecked(True)
+        draft = page.build_draft()
+        assert draft.play_completion_sound
+        page._remember_safe_defaults(draft)
+        assert settings.focus_play_completion_sound()
     finally:
         coordinator.shutdown()
         connection.close()  # type: ignore[attr-defined]

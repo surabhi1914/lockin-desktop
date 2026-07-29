@@ -95,6 +95,43 @@ def verify_session_integrity(connection: sqlite3.Connection) -> IntegrityReport:
             errors.append(f"session {session.session_id} actual focus total does not match")
         if paused != session.total_pause_seconds:
             errors.append(f"session {session.session_id} pause segment total does not match")
+        if session.entry_source not in {"timer", "manual", "recovery", "imported"}:
+            errors.append(f"session {session.session_id} has an invalid entry source")
+        if session.entry_source == "manual":
+            recovery_count = int(
+                connection.execute(
+                    "SELECT COUNT(*) FROM recovery_events WHERE session_id = ?",
+                    (session.session_id,),
+                ).fetchone()[0]
+            )
+            groups = {
+                str(segment["continuity_group_id"])
+                for segment in segments
+                if segment["counts_as_focus"]
+            }
+            if (
+                session.completion_reason != "manual_entry"
+                or session.manual_entry_created_at_utc is None
+            ):
+                errors.append(f"manual session {session.session_id} has invalid provenance")
+            if session.manual_entry_updated_at_utc is not None:
+                errors.append(f"manual session {session.session_id} was unexpectedly edited")
+            if recovery_count:
+                errors.append(f"manual session {session.session_id} has recovery audit rows")
+            if session.distraction_count or distraction_count:
+                errors.append(f"manual session {session.session_id} has distractions")
+            if paused or any(segment["segment_type"] != "focus" for segment in segments):
+                errors.append(f"manual session {session.session_id} has non-focus segments")
+            if session.continuous_block_count != 1 or len(groups) != 1:
+                errors.append(
+                    f"manual session {session.session_id} does not have one continuous block"
+                )
+        elif (
+            session.manual_entry_created_at_utc is not None
+            or session.manual_entry_updated_at_utc is not None
+            or session.completion_reason == "manual_entry"
+        ):
+            errors.append(f"non-manual session {session.session_id} has manual metadata")
         if session.record_checksum is None or session_checksum(session) != session.record_checksum:
             errors.append(f"session {session.session_id} checksum does not match")
     return IntegrityReport(tuple(errors))

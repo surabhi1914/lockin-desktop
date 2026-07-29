@@ -1,6 +1,6 @@
 # LockIn
 
-LockIn 1.0.1 is a local-first Windows focus timer. It combines a monotonic timer, a deliberate
+LockIn 1.1.0 is a local-first Windows focus timer. It combines a monotonic timer, a deliberate
 full-screen focus experience, crash/sleep recovery, portable CSV history, historical goals, a
 motivational dashboard, and read-only statistics without a cloud account or telemetry.
 
@@ -16,10 +16,12 @@ motivational dashboard, and read-only statistics without a cloud account or tele
 - Searchable categories and quotes, active-focus-hour quote rotation, and an optional local sound.
 - Effective-dated goals, dashboard comparisons/streaks/records, Qt-native charts, heatmap, advanced
   read-only Session History, and explicit statistics export.
+- Manual past-session logging with timezone/DST validation, overlap protection, source filtering,
+  portable synchronization, and full import/rebuild support.
 
 ## Install and first launch
 
-Download `LockIn-Setup-v1.0.1.exe` and `SHA256SUMS.txt` from the private GitHub Release, verify the
+Download `LockIn-Setup-v1.1.0.exe` and `SHA256SUMS.txt` from the private GitHub Release, verify the
 SHA-256 digest, and run the installer. It installs per user under
 `%LOCALAPPDATA%\Programs\LockIn`; no Python, terminal, or administrator access is required. The build
 is unsigned, so Windows SmartScreen may show a warning.
@@ -69,7 +71,7 @@ live `portable_data`.
 
 ## Release and limitations
 
-The private v1.0.1 release contains only the installer, portable ZIP, and checksums. Windows 10/11
+The private v1.1.0 release contains only the installer, portable ZIP, and checksums. Windows 10/11
 x64 is the supported release target. The binary is unsigned and no clean second PC or code-signing
 certificate is supplied. Cloud sync, Spotify, auto-update, global shortcuts, kiosk/system blocking,
 macOS, and Linux are intentionally absent.

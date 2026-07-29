@@ -43,6 +43,9 @@ class PersistedSession:
     start_ritual_enabled: bool
     created_at_utc: str
     updated_at_utc: str
+    entry_source: str
+    manual_entry_created_at_utc: str | None
+    manual_entry_updated_at_utc: str | None
     record_checksum: str | None
 
     @classmethod

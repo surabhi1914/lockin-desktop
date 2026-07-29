@@ -67,9 +67,28 @@ def session_values(row: PortableSourceRow) -> dict[str, object]:
         "quotes_enabled",
         "start_ritual_enabled",
     }
-    optional_fields = {"ended_at_utc", "ended_at_local", "completion_reason"}
+    optional_fields = {
+        "ended_at_utc",
+        "ended_at_local",
+        "completion_reason",
+        "manual_entry_created_at_utc",
+        "manual_entry_updated_at_utc",
+    }
     result: dict[str, object] = {}
     for field_name in PersistedSession.__dataclass_fields__:
+        if field_name == "entry_source" and field_name not in values:
+            result[field_name] = "imported"
+            continue
+        if (
+            field_name
+            in {
+                "manual_entry_created_at_utc",
+                "manual_entry_updated_at_utc",
+            }
+            and field_name not in values
+        ):
+            result[field_name] = None
+            continue
         value = values[field_name]
         if field_name in integer_fields:
             result[field_name] = int(value)
