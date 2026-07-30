@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.core.constants import DEFAULT_TIMEZONE
+from app.diagnostics import trace_manual_session
 from app.models.category import Category
 from app.models.manual_session import (
     CreateManualSessionCommand,
@@ -110,24 +111,17 @@ class AddPastSessionDialog(QDialog):
         self.buttons.rejected.connect(self.reject)
         layout.addWidget(self.buttons)
         self.different_planned.toggled.connect(self._different_planned_changed)
-        for control in (
-            self.session_date,
-            self.start_time,
+        self.session_date.dateChanged.connect(self._refresh_preview)
+        self.start_time.timeChanged.connect(self._refresh_preview)
+        for spinbox in (
             self.actual_hours,
             self.actual_minutes,
             self.planned_hours,
             self.planned_minutes,
-            self.category,
-            self.dst_occurrence,
         ):
-            signal = (
-                getattr(control, "dateChanged", None)
-                or getattr(control, "timeChanged", None)
-                or getattr(control, "valueChanged", None)
-                or getattr(control, "currentIndexChanged", None)
-            )
-            if signal is not None:
-                signal.connect(self._refresh_preview)
+            spinbox.valueChanged.connect(self._refresh_preview)
+        self.category.currentIndexChanged.connect(self._refresh_preview)
+        self.dst_occurrence.currentIndexChanged.connect(self._refresh_preview)
         self._different_planned_changed(False)
         self._refresh_preview()
 
@@ -249,24 +243,33 @@ class AddPastSessionDialog(QDialog):
         )
 
     def _save(self) -> None:
+        command = self._command()
         try:
-            self.result_record = self._service.create_manual_session(self._command())
+            self.result_record = self._service.create_manual_session(command, synchronize=False)
         except ManualSessionOverlapError as exc:
             if not exc.overlap.requires_confirmation:
-                self.validation.setText(str(exc))
+                self.validation.setText(f"{exc}\n\n{self._overlap_details(exc.overlap)}")
                 return
+            details = self._overlap_details(exc.overlap)
             answer = QMessageBox.warning(
                 self,
                 "Overlapping session",
-                f"{exc}\n\nSave this past session anyway?",
+                f"{exc}\n\n{details}\n\nSave this past session anyway?",
                 QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Cancel,
                 QMessageBox.StandardButton.Cancel,
+            )
+            trace_manual_session(
+                "overlap-confirmation",
+                confirmation="save" if answer is QMessageBox.StandardButton.Save else "cancel",
+                conflict_ids=list(exc.overlap.session_ids),
             )
             if answer is not QMessageBox.StandardButton.Save:
                 return
             try:
-                confirmed = replace(self._command(), overlap_confirmed=True)
-                self.result_record = self._service.create_manual_session(confirmed)
+                confirmed = replace(command, overlap_confirmed=True)
+                self.result_record = self._service.create_manual_session(
+                    confirmed, synchronize=False
+                )
             except ManualSessionError as retry_error:
                 self.validation.setText(str(retry_error))
                 return
@@ -274,6 +277,40 @@ class AddPastSessionDialog(QDialog):
             self.validation.setText(str(exc))
             return
         self.accept()
+
+    @classmethod
+    def _overlap_details(cls, overlap: object) -> str:
+        conflicts = getattr(overlap, "conflicts", ())
+        if not conflicts:
+            identifiers = getattr(overlap, "session_ids", ())
+            return "\n".join(f"Session: {str(identifier)[:8]}" for identifier in identifiers)
+        labels = {
+            "timer": "Timer recorded",
+            "manual": "Manual",
+            "recovery": "Recovery",
+            "imported": "Imported",
+        }
+        sections: list[str] = []
+        for conflict in conflicts:
+            started = datetime.fromisoformat(conflict.started_at_local)
+            ended = datetime.fromisoformat(conflict.ended_at_local)
+            end_label = cls._clock_label(ended)
+            if ended.date() != started.date():
+                end_label = f"{ended.strftime('%B %d, %Y').replace(' 0', ' ')} {end_label}"
+            sections.append(
+                "\n".join(
+                    (
+                        "This time overlaps another session:",
+                        started.strftime("%B %d, %Y").replace(" 0", " "),
+                        f"{cls._clock_label(started)}\N{EN DASH}{end_label}",
+                        conflict.category_name,
+                        labels.get(conflict.entry_source, conflict.entry_source.title()),
+                        f"Status: {conflict.status}",
+                        f"Session: {conflict.session_id[:8]}",
+                    )
+                )
+            )
+        return "\n\n".join(sections)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):

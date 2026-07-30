@@ -1,6 +1,6 @@
 # Manual past-session logging
 
-LockIn 1.1.0 can record focus that occurred in the past without pretending the timer tracked it.
+LockIn 1.1.1 can record focus that occurred in the past without pretending the timer tracked it.
 Choose **Session History → + Add Past Session**, then provide the local date, start time, actual
 focus duration, category, and optional different planned duration.
 
@@ -23,7 +23,7 @@ after the SQLite commit; if it fails, the local record remains safe and reports 
 rebuild and merge preserve the Manual badge, segments, checksum, and device/category snapshots.
 Legacy schema-v1 rows without provenance are classified as Imported, never guessed as Manual.
 
-Editing and deletion are not available in v1.1.0. The portable contract has no deletion tombstone,
+Editing and deletion are not available in v1.1.1. The portable contract has no deletion tombstone,
 and shipping a local-only operation could cause a deleted record to return after import.
 
 Manual logging stores only the selected historical timing/category and required integrity metadata.

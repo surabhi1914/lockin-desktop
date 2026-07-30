@@ -1,4 +1,4 @@
-# LockIn 1.1.0 focus experience
+# LockIn 1.1.1 focus experience
 
 The setup form validates duration, active category, an optional intention up to 240 characters, and
 session options. Category changes are permanent; the intention remains temporary and memory-only.

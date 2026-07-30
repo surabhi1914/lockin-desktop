@@ -1,51 +1,37 @@
-# LockIn v1.1.0
+# LockIn v1.1.1
 
-LockIn v1.1.0 adds one focused feature: finalized manual logging for a focus session completed in the
-past but not tracked by the timer.
+LockIn v1.1.1 is a focused corrective release for manual past-session logging.
 
-## Add Past Session
+## Fixed
 
-Open **Session History** and select **+ Add Past Session**. Enter a local date and start time, actual
-focus duration, category, and optionally a different planned duration. The live preview shows the
-derived end and whether the historical result is completed, completed with overtime, or stopped
-early.
+- Manual sessions are committed locally and revealed in Session History before portable
+  synchronization runs.
+- Saving clears incompatible History filters and selects the newly added Manual row.
+- Changing the past-session start time now immediately revalidates the preview and Save button.
+- Unresolved timer/recovery state blocks a manual entry only when its confirmed UTC interval
+  actually intersects the proposed interval.
+- Adjacent half-open intervals no longer produce overlap warnings.
+- Overlap warnings identify each conflicting date, time, category, source, status, and shortened
+  session ID.
+- History count and row queries now use identical predicates and tolerate absent optional device
+  labels.
+- Disabled-by-default manual-session tracing and a read-only diagnostic command report save stages
+  and canonical database paths without logging temporary intentions.
 
-Manual records are clearly labelled **Manual** in History. Source filters are available in History
-and Statistics. Manual focus counts toward dashboard goals, streaks, heatmaps, personal records,
-category/device totals, planned completion, overtime, and stopped-early analysis.
+## Data safety and compatibility
 
-## Safety and data compatibility
+There is no database or portable-schema migration in v1.1.1. Existing v1.1.0 SQLite databases,
+portable CSV data, settings, backups, logs, and personal history remain compatible. A failed
+portable sync never removes the committed local manual session.
 
-Schema v5 adds explicit session provenance and manual creation metadata. A manual save is one SQLite
-transaction containing a finalized aggregate and one or two closed focus segments. It does not
-simulate the timer and creates no temporary intention, pause, distraction, heartbeat, sleep,
-runtime, or recovery record.
+Install `LockIn-Setup-v1.1.1.exe` over v1.1.0. The per-user installer preserves application data
+under Local AppData and portable history in the user-selected portable folder.
 
-Date/time validation is IANA-timezone aware. Nonexistent spring-forward times are rejected and
-ambiguous fall-back times require an explicit first/second occurrence. Exact duplicates are blocked;
-partial or containing overlaps require confirmation; unresolved active/recovery state blocks entry.
+The release contains only:
 
-Portable data schema v2 carries the new source fields. Existing schema-v1 folders remain readable
-and are upgraded atomically with backups. Fresh rebuild and safe merge preserve manual provenance,
-segments, checksums, historical devices, and categories. Older rows with no reliable source are
-classified as Imported, never guessed as Manual.
+- `LockIn-Setup-v1.1.1.exe`
+- `LockIn-v1.1.1-portable.zip`
+- `SHA256SUMS.txt`
 
-Editing and deletion are intentionally unavailable in v1.1.0. The existing portable format has no
-safe deletion tombstone, so a local-only delete could return during re-import.
-
-The separately reported completion-sound regression is also corrected: the Start Focus option is
-available again, and enabled sessions play the bundled local sound when planned focus completes.
-
-## Installation and privacy
-
-Install `LockIn-Setup-v1.1.0.exe` over v1.0.0 or v1.0.1. The per-user upgrade preserves runtime
-SQLite data, portable CSV history, settings, logs, backups, and diagnostics. The portable ZIP must
-be fully extracted before running `LockIn\LockIn.exe`.
-
-LockIn remains local-first with no telemetry, cloud account, Spotify integration, global keyboard
-hook, background service, or automatic update. Release artifacts contain sanitized starter
-resources and no runtime database, logs, backups, intentions, personal history, portable data, or
-credentials.
-
-This unsigned Windows 10/11 x64 release may trigger SmartScreen. Verify downloads against
-`SHA256SUMS.txt`. The v1.0.0 and v1.0.1 tags, Releases, and assets remain unchanged.
+The binaries are unsigned and may trigger Windows SmartScreen. Verify both downloads against
+`SHA256SUMS.txt` from the private GitHub Release.

@@ -164,7 +164,7 @@ The session CSV adds three columns before `exported_at_utc` and `record_checksum
 | --- | --- |
 | `entry_source` | `timer`, `manual`, `recovery`, or `imported` |
 | `manual_entry_created_at_utc` | UTC creation timestamp for a manual record; empty otherwise |
-| `manual_entry_updated_at_utc` | UTC edit timestamp; empty in v1.1.0 because editing is deferred |
+| `manual_entry_updated_at_utc` | UTC edit timestamp; empty in v1.1.1 because editing is deferred |
 
 Schema-v1 session headers remain importable. When provenance is absent, import classifies the row as
 `imported`; it never guesses `manual`. Local synchronization upgrades v1 session files atomically,

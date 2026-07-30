@@ -8,6 +8,7 @@ from app.database.repositories.distraction_repository import DistractionReposito
 from app.database.repositories.recovery_event_repository import RecoveryEventRepository
 from app.database.repositories.segment_repository import SegmentRepository
 from app.database.repositories.session_repository import SessionRepository
+from app.diagnostics import database_path, trace_manual_session
 from app.models.persisted_distraction import PersistedDistraction
 from app.models.persisted_segment import PersistedSegment
 from app.models.persisted_session import PersistedSession
@@ -81,6 +82,10 @@ class HistoryService:
         self._distractions = DistractionRepository(connection)
         self._recovery = RecoveryEventRepository(connection)
 
+    @property
+    def database_path(self) -> str:
+        return str(database_path(self._connection))
+
     def search(self, filters: HistoryFilters) -> HistoryPageResult:
         if filters.page < 1 or not 1 <= filters.page_size <= 200:
             raise ValueError("history page and page size are outside supported limits")
@@ -120,21 +125,22 @@ class HistoryService:
             clauses.append("s.actual_focus_seconds <= ?")
             values.append(filters.maximum_focus_seconds)
         where = " AND ".join(clauses)
+        source = "sessions s LEFT JOIN devices d ON d.device_id=s.device_id"
         total = int(
             self._connection.execute(
-                f"SELECT COUNT(*) FROM sessions s WHERE {where}", values
+                f"SELECT COUNT(*) FROM {source} WHERE {where}", values
             ).fetchone()[0]
         )
         rows = self._connection.execute(
             f"""
-            SELECT s.*, d.device_label FROM sessions s
-            JOIN devices d ON d.device_id=s.device_id
+            SELECT s.*, COALESCE(d.device_label, 'Unknown device') AS device_label
+            FROM {source}
             WHERE {where} ORDER BY {self.SORTS[filters.sort_by]}
             LIMIT ? OFFSET ?
             """,
             (*values, filters.page_size, (filters.page - 1) * filters.page_size),
         ).fetchall()
-        return HistoryPageResult(
+        result = HistoryPageResult(
             tuple(
                 HistoryRow(
                     row["session_id"],
@@ -155,6 +161,20 @@ class HistoryService:
             filters.page,
             filters.page_size,
         )
+        trace_manual_session(
+            "history-query",
+            connection=self._connection,
+            total_count=result.total_count,
+            returned_count=len(result.rows),
+            page=result.page,
+            page_size=result.page_size,
+            entry_sources=list(filters.entry_sources),
+            statuses=list(filters.statuses),
+            from_date=filters.from_date,
+            to_date=filters.to_date,
+            result_ids=[row.session_id for row in result.rows],
+        )
+        return result
 
     def detail(self, session_id: str) -> SessionDetail:
         session = self._sessions.get(session_id)

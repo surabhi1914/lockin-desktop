@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.1] - 2026-07-30
+
+- Fixed manual sessions not appearing immediately in Session History by refreshing after the local
+  SQLite commit and before portable synchronization.
+- Fixed stale start-time validation caused by connecting `QTimeEdit` to the wrong change signal.
+- Fixed false overlap blocking from unrelated unresolved sessions by applying half-open confirmed
+  UTC interval comparisons.
+- Added detailed overlap records, consistent History count/row predicates, read-only database-path
+  diagnostics, and development-only save tracing.
+- Added regression coverage for adjacency, actual-versus-planned intervals, filters, restart,
+  sync failure, cache invalidation, warning details, and UI/process safety.
+
 ## [1.1.0] - 2026-07-29
 
 - Added `+ Add Past Session` to Session History for finalized historical focus records.

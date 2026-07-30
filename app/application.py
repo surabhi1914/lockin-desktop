@@ -24,7 +24,11 @@ from app.database.repositories.device_repository import DeviceRepository
 from app.database.repositories.runtime_state_repository import RuntimeStateRepository
 from app.database.repositories.session_repository import SessionRepository
 from app.database.unit_of_work import UnitOfWork
-from app.diagnostics import install_process_launch_tracing, install_transient_window_tracing
+from app.diagnostics import (
+    install_process_launch_tracing,
+    install_transient_window_tracing,
+    trace_manual_session,
+)
 from app.models.errors import CategoryError
 from app.portability.category_portable_store import CategoryPortableStore
 from app.quotes.quote_store import QuoteStore
@@ -308,6 +312,15 @@ def create_application(
             connection,
             device_id,
             post_create_sync=portable_sync.sync_session,
+            post_commit=(dashboard_service.invalidate, analytics_service.invalidate),
+        )
+        trace_manual_session(
+            "database-paths",
+            connection=connection,
+            application_startup_database=str(resolved.database_path.resolve()),
+            manual_session_service_database=manual_session_service.database_path,
+            session_repository_database=SessionRepository(connection).database_path,
+            history_query_service_database=history_service.database_path,
         )
         statistics_exporter = StatisticsExportService(resolved.portable_root)
         page_registry = build_page_registry(

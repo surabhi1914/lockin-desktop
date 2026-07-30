@@ -57,9 +57,20 @@ class ResolvedManualSession:
 
 
 @dataclass(frozen=True, slots=True)
+class OverlapConflict:
+    session_id: str
+    entry_source: str
+    category_name: str
+    status: str
+    started_at_local: str
+    ended_at_local: str
+
+
+@dataclass(frozen=True, slots=True)
 class SessionOverlap:
     kind: OverlapKind
     session_ids: tuple[str, ...] = ()
+    conflicts: tuple[OverlapConflict, ...] = ()
 
     @property
     def requires_confirmation(self) -> bool:

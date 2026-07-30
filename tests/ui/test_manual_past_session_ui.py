@@ -1,17 +1,20 @@
 import os
 import subprocess
+from datetime import UTC, datetime
 from typing import Any
 
-from PySide6.QtCore import QEvent, QProcess, Qt, QTime
+from PySide6.QtCore import QDate, QEvent, QProcess, Qt, QTime
 from PySide6.QtGui import QKeyEvent
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtWidgets import QApplication, QDialog, QMessageBox
 
+from app.core.wall_clock import ManualWallClock
 from app.models.manual_session import OverlapKind, SessionOverlap
 from app.models.manual_session_errors import (
     ManualSessionOverlapError,
     ManualSessionValidationError,
 )
+from app.services.manual_session_service import ManualSessionService
 from app.ui.dialogs.add_past_session_dialog import AddPastSessionDialog
 from app.ui.pages.history_page import HistoryPage
 
@@ -139,6 +142,98 @@ def test_dialog_blocks_duplicate_and_confirms_partial_overlap(
     assert app_context.connection.execute("SELECT COUNT(*) FROM sessions").fetchone()[0] == 2
 
 
+def test_overlap_warning_identifies_the_conflicting_session(
+    app_context: Any,
+    qtbot: Any,
+    monkeypatch: Any,
+) -> None:
+    page = app_context.window.page("history")
+    assert isinstance(page, HistoryPage)
+    first = AddPastSessionDialog(app_context.manual_session_service, page)
+    qtbot.addWidget(first)
+    first.save_button.click()
+    assert first.result_record is not None
+    captured: list[str] = []
+
+    def cancel_warning(
+        _parent: Any,
+        _title: str,
+        message: str,
+        *_args: Any,
+        **_kwargs: Any,
+    ) -> QMessageBox.StandardButton:
+        captured.append(message)
+        return QMessageBox.StandardButton.Cancel
+
+    monkeypatch.setattr(QMessageBox, "warning", cancel_warning)
+    overlapping = AddPastSessionDialog(app_context.manual_session_service, page)
+    qtbot.addWidget(overlapping)
+    overlapping.start_time.setTime(QTime(19, 15))
+    overlapping.save_button.click()
+    assert overlapping.result_record is None
+    assert len(captured) == 1
+    warning = captured[0]
+    assert "This time overlaps another session:" in warning
+    assert first.result_record.summary.category_name in warning
+    assert "Manual" in warning
+    assert f"Session: {first.result_record.summary.session_id[:8]}" in warning
+
+
+def test_history_reveals_local_save_before_sync_and_clears_timer_filter(
+    app_context: Any,
+    qtbot: Any,
+    monkeypatch: Any,
+) -> None:
+    page = app_context.window.page("history")
+    assert isinstance(page, HistoryPage)
+    command_dialog = AddPastSessionDialog(app_context.manual_session_service, page)
+    qtbot.addWidget(command_dialog)
+    result = app_context.manual_session_service.create_manual_session(
+        command_dialog._command(),
+        synchronize=False,
+    )
+    command_dialog.reject()
+    timer_index = page.source.findData("timer")
+    page.source.setCurrentIndex(timer_index)
+    assert result.summary.session_id not in page._session_ids
+    events: list[str] = []
+
+    class CompletedDialog:
+        def __init__(self, *_args: Any, **_kwargs: Any) -> None:
+            self.result_record = result
+
+        def exec(self) -> QDialog.DialogCode:
+            return QDialog.DialogCode.Accepted
+
+    original_sync = app_context.manual_session_service.sync_created_session
+
+    def sync_after_refresh(session_id: str) -> Any:
+        assert page._session_ids == [session_id]
+        assert page.source.currentData() == ""
+        assert events == ["local-success"]
+        events.append("sync")
+        return original_sync(session_id)
+
+    monkeypatch.setattr(
+        "app.ui.pages.history_page.AddPastSessionDialog",
+        CompletedDialog,
+    )
+    monkeypatch.setattr(
+        app_context.manual_session_service,
+        "sync_created_session",
+        sync_after_refresh,
+    )
+    monkeypatch.setattr(
+        QMessageBox,
+        "information",
+        lambda *_args, **_kwargs: events.append("local-success"),
+    )
+    page._add_past_session()
+    assert events == ["local-success", "sync"]
+    assert page._session_ids == [result.summary.session_id]
+    assert page.table.item(0, 9).text() == "Manual"
+
+
 def test_dialog_duration_labels_and_non_enter_key_path(
     app_context: Any,
     qapp: QApplication,
@@ -154,6 +249,29 @@ def test_dialog_duration_labels_and_non_enter_key_path(
     event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Tab, Qt.KeyboardModifier.NoModifier)
     dialog.keyPressEvent(event)
     assert not event.isAccepted()
+
+
+def test_time_change_revalidates_preview_after_today_was_initially_future(
+    app_context: Any,
+    qtbot: Any,
+) -> None:
+    page = app_context.window.page("history")
+    assert isinstance(page, HistoryPage)
+    service = ManualSessionService(
+        app_context.connection,
+        app_context.device_id,
+        wall_clock=ManualWallClock(datetime(2026, 7, 30, 16, tzinfo=UTC)),
+    )
+    dialog = AddPastSessionDialog(service, page)
+    qtbot.addWidget(dialog)
+    dialog.session_date.setDate(QDate(2026, 7, 30))
+    dialog.start_time.setTime(QTime(19, 0))
+    assert "future" in dialog.validation.text().casefold()
+    assert not dialog.save_button.isEnabled()
+    dialog.start_time.setTime(QTime(6, 0))
+    assert dialog.validation.text() == ""
+    assert dialog.save_button.isEnabled()
+    assert "Start: 6:00 AM" in dialog.preview.text()
 
 
 def test_dialog_surfaces_save_and_confirmed_retry_errors(

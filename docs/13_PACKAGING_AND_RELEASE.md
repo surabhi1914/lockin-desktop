@@ -1,6 +1,6 @@
 # Packaging and release
 
-LockIn 1.1.0 uses PyInstaller 6 onedir and Inno Setup 6. Packaging requires Python 3.12 and the
+LockIn 1.1.1 uses PyInstaller 6 onedir and Inno Setup 6. Packaging requires Python 3.12 and the
 project `.venv`; Inno Setup is the only external compiler. Builds are unsigned.
 
 ```powershell
@@ -23,6 +23,6 @@ digests for the installer and ZIP. `release-build-report.json` records redacted 
 but is not a GitHub Release asset.
 
 Release binaries and `release/` are Git-ignored. The GitHub Release uploads exactly the installer,
-portable ZIP, and checksums. A private repository, pushed release commit, annotated `v1.1.0`, stable
+portable ZIP, and checksums. A private repository, pushed release commit, annotated `v1.1.1`, stable
 Release, and verified assets are mandatory before publication is complete. The v1.0.0 and v1.0.1
 tags and Releases remain immutable historical release records.

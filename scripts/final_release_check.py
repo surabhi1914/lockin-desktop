@@ -51,6 +51,7 @@ REQUIRED_DOCS = (
     "docs/HOTFIX_1_0_1_ACCEPTANCE.md",
     "docs/MANUAL_PAST_SESSION_LOGGING.md",
     "docs/V1_1_0_ACCEPTANCE_CHECKLIST.md",
+    "docs/V1_1_1_ACCEPTANCE_CHECKLIST.md",
 )
 V1_0_0_COMMIT = "0a05c9619eea749bedfa3475359441935c819688"
 V1_0_0_ASSETS = {
@@ -80,6 +81,21 @@ V1_0_1_ASSETS = {
     "SHA256SUMS.txt": (
         185,
         "sha256:a67c471eb692f05e5999d70488704f9bc3541085d1b7f9e1db7c2bf63648308a",
+    ),
+}
+V1_1_0_COMMIT = "4181632c7a7d39e836bb7629cfcd3edde1b704aa"
+V1_1_0_ASSETS = {
+    "LockIn-Setup-v1.1.0.exe": (
+        40_944_063,
+        "sha256:44eee1b629c6702c64b43e4e9ee58382ad506455fd5868884a503c909a52cc88",
+    ),
+    "LockIn-v1.1.0-portable.zip": (
+        56_874_654,
+        "sha256:c914f12e85eb9b768afef4df97276a1b62ee1822970f3dabd023d9d6710a3e86",
+    ),
+    "SHA256SUMS.txt": (
+        185,
+        "sha256:dc731caad5ef3fac736a7c32250f099a9a250d5922be249aee0b117f9ca80301",
     ),
 }
 
@@ -112,6 +128,15 @@ def check(repo: Path, mode: str) -> tuple[str, ...]:
             version="1.0.0",
             expected_commit=V1_0_0_COMMIT,
             expected_assets=V1_0_0_ASSETS,
+            required=mode == "post-publication",
+        )
+    )
+    errors.extend(
+        _prior_release_preservation_errors(
+            repo,
+            version="1.1.0",
+            expected_commit=V1_1_0_COMMIT,
+            expected_assets=V1_1_0_ASSETS,
             required=mode == "post-publication",
         )
     )

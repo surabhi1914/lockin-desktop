@@ -17,6 +17,7 @@ from app.database.repositories.category_repository import CategoryRepository
 from app.database.repositories.segment_repository import SegmentRepository
 from app.database.repositories.session_repository import SessionRepository
 from app.database.unit_of_work import UnitOfWork
+from app.diagnostics import database_path, trace_manual_session
 from app.models.category import Category
 from app.models.errors import CategoryNotFoundError
 from app.models.manual_session import (
@@ -35,6 +36,7 @@ from app.services.session_checksum_service import session_checksum
 from app.services.session_overlap_service import SessionOverlapService
 
 PostCreateSync = Callable[[str], tuple[bool, str]]
+PostCommit = Callable[[], None]
 FailureInjector = Callable[[str], None]
 
 
@@ -45,6 +47,7 @@ class ManualSessionService:
         device_id: str,
         *,
         post_create_sync: PostCreateSync | None = None,
+        post_commit: tuple[PostCommit, ...] = (),
         wall_clock: WallClock | None = None,
         uuid_provider: Callable[[], str] = new_uuid4,
         failure_injector: FailureInjector | None = None,
@@ -52,6 +55,7 @@ class ManualSessionService:
         self._connection = connection
         self._device_id = device_id
         self._sync = post_create_sync
+        self._post_commit = post_commit
         self._clock = wall_clock or SystemWallClock()
         self._uuid = uuid_provider
         self._inject = failure_injector or (lambda _point: None)
@@ -59,6 +63,10 @@ class ManualSessionService:
         self._segments = SegmentRepository(connection)
         self._categories = CategoryRepository(connection)
         self._overlaps = SessionOverlapService(connection)
+
+    @property
+    def database_path(self) -> str:
+        return str(database_path(self._connection))
 
     def categories(self) -> tuple[Category, ...]:
         return self._categories.list_all()
@@ -94,7 +102,22 @@ class ManualSessionService:
             raise ManualSessionValidationError(
                 "A manual session cannot cross more than one local midnight."
             )
-        return ResolvedManualSession(command, started, ended)
+        resolved = ResolvedManualSession(command, started, ended)
+        trace_manual_session(
+            "validated-interval",
+            connection=self._connection,
+            local_date=command.local_date.isoformat(),
+            local_start=format_local(started),
+            local_end=format_local(ended),
+            utc_start=format_utc(started),
+            utc_end=format_utc(ended),
+            timezone_name=command.timezone_name,
+            actual_minutes=command.actual_minutes,
+            planned_minutes=command.planned_minutes,
+            category_id=command.category_id,
+            fold=command.fold,
+        )
+        return resolved
 
     def overlap_for(self, resolved: ResolvedManualSession) -> object:
         return self._overlaps.assess(
@@ -104,8 +127,23 @@ class ManualSessionService:
         )
 
     def create_manual_session(
-        self, command: CreateManualSessionCommand
+        self,
+        command: CreateManualSessionCommand,
+        *,
+        synchronize: bool = True,
     ) -> ManualSessionCreationResult:
+        trace_manual_session(
+            "save-request",
+            connection=self._connection,
+            local_date=command.local_date.isoformat(),
+            local_time=command.start_time.isoformat(),
+            actual_minutes=command.actual_minutes,
+            planned_minutes=command.planned_minutes,
+            category_id=command.category_id,
+            timezone_name=command.timezone_name,
+            fold=command.fold,
+            overlap_confirmed=command.overlap_confirmed,
+        )
         resolved = self.resolve(command)
         try:
             category = self._categories.get_by_id(command.category_id)
@@ -115,6 +153,14 @@ class ManualSessionService:
             started_at_utc=resolved.started_at.astimezone(UTC),
             ended_at_utc=resolved.ended_at.astimezone(UTC),
             category_id=command.category_id,
+        )
+        trace_manual_session(
+            "overlap-decision",
+            connection=self._connection,
+            kind=overlap.kind.value,
+            confirmation_supplied=command.overlap_confirmed,
+            conflict_count=len(overlap.session_ids),
+            conflict_ids=list(overlap.session_ids),
         )
         if overlap.kind is OverlapKind.DUPLICATE:
             raise ManualSessionOverlapError(
@@ -134,6 +180,11 @@ class ManualSessionService:
         timestamp = format_utc(require_utc(self._clock.now_utc()))
         session_id = self._uuid()
         try:
+            trace_manual_session(
+                "transaction-begin",
+                connection=self._connection,
+                session_id=session_id,
+            )
             with UnitOfWork(self._connection):
                 sequence = self._sessions.allocate_sequence(self._device_id)
                 self._sessions.insert(
@@ -146,21 +197,77 @@ class ManualSessionService:
                         timestamp=timestamp,
                     )
                 )
+                trace_manual_session(
+                    "session-insert",
+                    connection=self._connection,
+                    session_id=session_id,
+                    sequence=sequence,
+                    status=resolved.result.value,
+                    entry_source="manual",
+                    completion_reason="manual_entry",
+                )
                 self._inject("after_session_insert")
                 self._insert_segments(resolved, session_id, timestamp)
+                segment_count = len(self._segments.list_for_session(session_id))
+                trace_manual_session(
+                    "segment-insert",
+                    connection=self._connection,
+                    session_id=session_id,
+                    segment_count=segment_count,
+                    actual_focus_seconds=resolved.actual_seconds,
+                    planned_focus_seconds=resolved.planned_seconds,
+                    overtime_seconds=max(resolved.actual_seconds - resolved.planned_seconds, 0),
+                )
                 self._inject("after_segments_insert")
                 session = self._sessions.get(session_id)
                 if session is None:
                     raise ManualSessionPersistenceError("Manual session insert was not visible.")
-                self._sessions.update(session_id, {"record_checksum": session_checksum(session)})
+                checksum = session_checksum(session)
+                self._sessions.update(session_id, {"record_checksum": checksum})
+                trace_manual_session(
+                    "checksum",
+                    connection=self._connection,
+                    session_id=session_id,
+                    checksum=checksum,
+                )
         except ManualSessionPersistenceError:
+            trace_manual_session(
+                "transaction-rollback",
+                connection=self._connection,
+                session_id=session_id,
+                error="manual session persistence error",
+            )
             raise
         except (sqlite3.Error, LookupError, RuntimeError, ValueError) as exc:
+            trace_manual_session(
+                "transaction-rollback",
+                connection=self._connection,
+                session_id=session_id,
+                error=f"{type(exc).__name__}: {exc}",
+            )
             raise ManualSessionPersistenceError(
-                "The past session could not be saved; no partial record was kept."
+                "The past session could not be saved; no partial record was kept. "
+                f"{type(exc).__name__}: {exc}"
             ) from exc
+        trace_manual_session(
+            "transaction-commit",
+            connection=self._connection,
+            session_id=session_id,
+        )
         session = self._sessions.get(session_id)
         if session is None:
+            raise ManualSessionPersistenceError("The saved past session could not be reloaded.")
+        summary = SessionSummary.from_session(session)
+        self._notify_post_commit(session_id)
+        if not synchronize:
+            message = "Past session saved locally; portable sync pending."
+            summary = replace(summary, portable_synced=False, sync_message=message)
+            return ManualSessionCreationResult(summary, False, message)
+        return self.sync_created_session(session_id)
+
+    def sync_created_session(self, session_id: str) -> ManualSessionCreationResult:
+        session = self._sessions.get(session_id)
+        if session is None or session.entry_source != "manual" or session.ended_at_utc is None:
             raise ManualSessionPersistenceError("The saved past session could not be reloaded.")
         summary = SessionSummary.from_session(session)
         try:
@@ -173,8 +280,30 @@ class ManualSessionService:
             synced, message = False, "Past session saved locally; portable sync pending."
         if not synced:
             message = "Past session saved locally; portable sync pending."
+        trace_manual_session(
+            "portable-sync",
+            connection=self._connection,
+            session_id=session_id,
+            success=synced,
+            message=message,
+        )
         summary = replace(summary, portable_synced=synced, sync_message=message)
         return ManualSessionCreationResult(summary, synced, message)
+
+    def _notify_post_commit(self, session_id: str) -> None:
+        failures: list[str] = []
+        for callback in self._post_commit:
+            try:
+                callback()
+            except (RuntimeError, ValueError) as exc:
+                failures.append(f"{type(exc).__name__}: {exc}")
+        trace_manual_session(
+            "cache-invalidation",
+            connection=self._connection,
+            session_id=session_id,
+            callback_count=len(self._post_commit),
+            failures=failures,
+        )
 
     @staticmethod
     def _validate_scalar_fields(command: CreateManualSessionCommand) -> None:

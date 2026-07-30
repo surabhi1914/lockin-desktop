@@ -1,6 +1,6 @@
 """Advanced read-only, paginated Session History and detail inspection."""
 
-from datetime import date
+from datetime import date, datetime
 
 from PySide6.QtCore import QDate
 from PySide6.QtGui import QShowEvent
@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.analytics.history_service import HistoryFilters, HistoryService, SessionDetail
+from app.diagnostics import trace_manual_session
 from app.services.manual_session_service import ManualSessionService
 from app.services.session_aggregate_service import SessionAggregateService
 from app.ui.dialogs.add_past_session_dialog import AddPastSessionDialog
@@ -285,6 +286,13 @@ class HistoryPage(QWidget):
         self.page_label.setText(f"Page {self._page} of {pages} · {total} sessions")
         self.previous_button.setEnabled(self._page > 1)
         self.next_button.setEnabled(self._page < pages)
+        trace_manual_session(
+            "history-refresh",
+            history_database_path=(None if self._history is None else self._history.database_path),
+            total_count=total,
+            visible_count=len(values),
+            visible_session_ids=list(self._session_ids),
+        )
 
     def showEvent(self, event: QShowEvent) -> None:
         self.refresh()
@@ -356,14 +364,58 @@ class HistoryPage(QWidget):
         dialog = AddPastSessionDialog(self._manual_sessions, self)
         if dialog.exec() != QDialog.DialogCode.Accepted or dialog.result_record is None:
             return
-        self._page = 1
-        self.refresh()
         result = dialog.result_record
+        self._reveal_session(result.summary.session_id, result.summary.started_at_local)
         QMessageBox.information(
             self,
             "Past session saved",
-            ("Past session saved and synchronized." if result.portable_synced else result.message),
+            "Past session saved locally and is now visible in Session History.",
         )
+        result = self._manual_sessions.sync_created_session(result.summary.session_id)
+        dialog.result_record = result
+        self.refresh()
+        if not result.portable_synced:
+            QMessageBox.warning(
+                self,
+                "Portable sync pending",
+                "Saved locally; portable sync pending",
+            )
+
+    def _reveal_session(self, session_id: str, started_at_local: str) -> None:
+        controls = (
+            self.search,
+            self.category,
+            self.status,
+            self.device,
+            self.source,
+            self.sort,
+            self.minimum_minutes,
+            self.maximum_minutes,
+            self.overtime_only,
+            self.distraction_only,
+            self.from_date,
+            self.to_date,
+        )
+        for control in controls:
+            control.blockSignals(True)
+        try:
+            started = datetime.fromisoformat(started_at_local).date()
+            self.search.setText(session_id)
+            for combo in (self.category, self.status, self.device, self.source, self.sort):
+                combo.setCurrentIndex(0)
+            self.minimum_minutes.setValue(0)
+            self.maximum_minutes.setValue(0)
+            self.overtime_only.setChecked(False)
+            self.distraction_only.setChecked(False)
+            self.from_date.setDate(QDate(started.year, started.month, started.day))
+            self.to_date.setDate(QDate.currentDate())
+            self._page = 1
+        finally:
+            for control in controls:
+                control.blockSignals(False)
+        self.refresh()
+        if self._session_ids and self._session_ids[0] == session_id:
+            self.table.selectRow(0)
 
     @staticmethod
     def _selected(combo: QComboBox) -> tuple[str, ...]:

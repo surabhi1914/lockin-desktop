@@ -27,6 +27,7 @@ from app.services.manual_session_service import ManualSessionService
 from app.services.portable_sync_service import PortableSyncService
 from app.services.portable_verification_service import PortableVerificationService
 from app.services.session_integrity_service import verify_session_integrity
+from app.services.session_overlap_service import SessionOverlapService
 from tests.phase3_helpers import isolated_category_service, path_config
 
 NOW = datetime(2026, 7, 29, 23, 0, tzinfo=UTC)
@@ -175,6 +176,11 @@ def test_validation_archived_category_and_dst_rules(tmp_path: Path) -> None:
     )
     difference = second.started_at.astimezone(UTC) - first.started_at.astimezone(UTC)
     assert int(difference.total_seconds()) == 3600
+    morning = service.resolve(_command(category_id, start=time(7), actual=30))
+    evening = service.resolve(_command(category_id, start=time(19), actual=30))
+    assert morning.started_at.hour == 7
+    assert evening.started_at.hour == 19
+    assert int((evening.started_at - morning.started_at).total_seconds()) == 12 * 3600
     connection.close()
 
 
@@ -212,9 +218,227 @@ def test_overlap_duplicate_warning_and_unresolved_block(tmp_path: Path) -> None:
     connection.commit()
     with pytest.raises(ManualSessionOverlapError) as unresolved:
         service.create_manual_session(
-            _command(category_id, start=time(10), actual=10, confirmed=True)
+            _command(
+                category_id,
+                day=date(2026, 7, 29),
+                start=time(16, 5),
+                actual=10,
+                confirmed=True,
+            )
         )
     assert unresolved.value.overlap.kind is OverlapKind.UNRESOLVED
+    assert unresolved.value.overlap.conflicts[0].session_id
+    assert (
+        service.overlap_for(_service(connection, device_id).resolve(_command(category_id))).kind
+        is not OverlapKind.UNRESOLVED
+    )
+    connection.close()
+
+
+def test_overlap_uses_half_open_utc_intervals_and_actual_duration(tmp_path: Path) -> None:
+    connection, device_id, category_id, _archived = _database(tmp_path)
+    service = _service(connection, device_id)
+    created = service.create_manual_session(_command(category_id))
+    overlap = SessionOverlapService(connection)
+    existing_start = datetime(2026, 7, 28, 23, 0, tzinfo=UTC)
+    existing_end = datetime(2026, 7, 29, 0, 30, tzinfo=UTC)
+    cases = (
+        (
+            datetime(2026, 7, 28, 22, 0, tzinfo=UTC),
+            existing_start,
+            OverlapKind.NONE,
+        ),
+        (
+            existing_end,
+            datetime(2026, 7, 29, 1, 0, tzinfo=UTC),
+            OverlapKind.NONE,
+        ),
+        (
+            datetime(2026, 7, 28, 22, 59, 58, tzinfo=UTC),
+            datetime(2026, 7, 28, 22, 59, 59, tzinfo=UTC),
+            OverlapKind.NONE,
+        ),
+        (
+            datetime(2026, 7, 28, 22, 30, tzinfo=UTC),
+            datetime(2026, 7, 28, 23, 0, tzinfo=UTC),
+            OverlapKind.NONE,
+        ),
+        (
+            datetime(2026, 7, 28, 22, 30, tzinfo=UTC),
+            datetime(2026, 7, 28, 23, 0, 1, tzinfo=UTC),
+            OverlapKind.PARTIAL,
+        ),
+        (
+            datetime(2026, 7, 29, 0, 29, 59, tzinfo=UTC),
+            datetime(2026, 7, 29, 1, 0, tzinfo=UTC),
+            OverlapKind.PARTIAL,
+        ),
+    )
+    for started, ended, expected in cases:
+        assert (
+            overlap.assess(
+                started_at_utc=started,
+                ended_at_utc=ended,
+                category_id=category_id,
+            ).kind
+            is expected
+        )
+    assert (
+        overlap.assess(
+            started_at_utc=existing_start,
+            ended_at_utc=existing_end,
+            category_id=category_id,
+        ).kind
+        is OverlapKind.DUPLICATE
+    )
+    assert (
+        overlap.assess(
+            started_at_utc=existing_start,
+            ended_at_utc=existing_end,
+            category_id=category_id,
+            exclude_session_id=created.summary.session_id,
+        ).kind
+        is OverlapKind.NONE
+    )
+    planned_longer_than_actual = _command(
+        category_id,
+        start=time(18, 30),
+        actual=30,
+        planned=180,
+    )
+    assert service.overlap_for(service.resolve(planned_longer_than_actual)).kind is OverlapKind.NONE
+    connection.close()
+
+
+def test_discarded_is_ignored_and_imported_recovery_conflicts_are_described(
+    tmp_path: Path,
+) -> None:
+    connection, device_id, category_id, _archived = _database(tmp_path)
+    service = _service(connection, device_id)
+    discarded = service.create_manual_session(_command(category_id))
+    connection.execute(
+        "UPDATE sessions SET status='discarded' WHERE session_id=?",
+        (discarded.summary.session_id,),
+    )
+    connection.commit()
+    assert service.overlap_for(service.resolve(_command(category_id))).kind is OverlapKind.NONE
+
+    imported = service.create_manual_session(_command(category_id))
+    connection.execute(
+        """
+        UPDATE sessions SET entry_source='imported', completion_reason='data_repair',
+               manual_entry_created_at_utc=NULL
+        WHERE session_id=?
+        """,
+        (imported.summary.session_id,),
+    )
+    connection.commit()
+    imported_overlap = service.overlap_for(service.resolve(_command(category_id)))
+    assert imported_overlap.kind is OverlapKind.DUPLICATE
+    assert imported_overlap.conflicts[0].entry_source == "imported"
+
+    connection.execute(
+        """
+        UPDATE sessions SET entry_source='recovery', completion_reason='crash_recovery',
+               status='recovered'
+        WHERE session_id=?
+        """,
+        (imported.summary.session_id,),
+    )
+    connection.commit()
+    recovery_overlap = service.overlap_for(service.resolve(_command(category_id)))
+    assert recovery_overlap.conflicts[0].entry_source == "recovery"
+    connection.close()
+
+
+def test_history_default_manual_filters_restart_and_database_paths(tmp_path: Path) -> None:
+    path = tmp_path / "lockin.sqlite3"
+    connection, device_id, category_id, _archived = _database(tmp_path)
+    service = _service(
+        connection,
+        device_id,
+        post_create_sync=lambda _session_id: (False, "offline"),
+    )
+    result = service.create_manual_session(_command(category_id))
+    history = HistoryService(connection)
+    default = history.search(HistoryFilters())
+    assert default.total_count == len(default.rows) == 1
+    assert default.rows[0].entry_source == "manual"
+    assert len(history.search(HistoryFilters(entry_sources=("manual",))).rows) == 1
+    assert not history.search(HistoryFilters(entry_sources=("timer",))).rows
+    assert result.message == "Past session saved locally; portable sync pending."
+    assert service.database_path == history.database_path == str(path.resolve())
+    connection.close()
+
+    reopened = connect_database(path)
+    restarted = HistoryService(reopened).search(HistoryFilters())
+    assert restarted.total_count == 1
+    assert restarted.rows[0].entry_source == "manual"
+    assert restarted.rows[0].pause_seconds == restarted.rows[0].distraction_count == 0
+    reopened.close()
+
+
+def test_post_commit_invalidation_precedes_portable_sync(tmp_path: Path) -> None:
+    connection, device_id, category_id, _archived = _database(tmp_path)
+    events: list[str] = []
+
+    def invalidate() -> None:
+        assert (
+            connection.execute(
+                "SELECT COUNT(*) FROM sessions WHERE entry_source='manual'"
+            ).fetchone()[0]
+            == 1
+        )
+        events.append("invalidate")
+
+    def sync(_session_id: str) -> tuple[bool, str]:
+        events.append("sync")
+        return True, "synced"
+
+    result = _service(
+        connection,
+        device_id,
+        post_commit=(invalidate,),
+        post_create_sync=sync,
+    ).create_manual_session(_command(category_id))
+    assert result.portable_synced
+    assert events == ["invalidate", "sync"]
+    connection.close()
+
+
+def test_development_trace_covers_save_commit_sync_and_history_without_intention(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    connection, device_id, category_id, _archived = _database(tmp_path)
+    monkeypatch.setenv("LOCKIN_TRACE_MANUAL_SESSIONS", "1")
+    service = _service(
+        connection,
+        device_id,
+        post_create_sync=lambda _session_id: (True, "synced"),
+    )
+    result = service.create_manual_session(_command(category_id))
+    HistoryService(connection).search(HistoryFilters())
+    trace = capsys.readouterr().err
+    for event in (
+        "save-request",
+        "validated-interval",
+        "overlap-query",
+        "overlap-decision",
+        "transaction-begin",
+        "session-insert",
+        "segment-insert",
+        "checksum",
+        "transaction-commit",
+        "cache-invalidation",
+        "portable-sync",
+        "history-query",
+    ):
+        assert f'"event": "{event}"' in trace
+    assert result.summary.session_id in trace
+    assert str((tmp_path / "lockin.sqlite3").resolve()).replace("\\", "\\\\") in trace
+    assert "temporary_intention" not in trace
     connection.close()
 
 

@@ -3,12 +3,17 @@
 import sqlite3
 from collections.abc import Mapping
 
+from app.diagnostics import database_path
 from app.models.persisted_session import FINAL_SESSION_STATUSES, PersistedSession
 
 
 class SessionRepository:
     def __init__(self, connection: sqlite3.Connection) -> None:
         self._connection = connection
+
+    @property
+    def database_path(self) -> str:
+        return str(database_path(self._connection))
 
     def allocate_sequence(self, device_id: str) -> int:
         row = self._connection.execute(
